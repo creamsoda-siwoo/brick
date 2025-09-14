@@ -9,6 +9,7 @@
   --button-hover-color: #45a049;
   --secondary-button-color: #f44336;
   --secondary-button-hover-color: #da190b;
+  --item-color: #2ecc71; /* Emerald green */
 }
 
 * {
@@ -53,6 +54,18 @@ body {
   touch-action: none; /* Prevents default touch actions like scrolling */
 }
 
+#game-container.slow-effect::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(46, 204, 113, 0.15);
+  z-index: 1;
+  pointer-events: none; /* Allows clicks to go through */
+}
+
 .wall {
   position: absolute;
   top: 0;
@@ -82,6 +95,7 @@ body {
   transform: translateX(-50%);
   border: 1px solid #0056b3;
   box-shadow: inset 0 -2px 0 rgba(0,0,0,0.3);
+  z-index: 6; /* Player is in front of walls */
 }
 
 .brick {
@@ -92,6 +106,18 @@ body {
   border-radius: 2px;
   border: 1px solid #800000;
   box-shadow: inset 0 -2px 0 rgba(0,0,0,0.2);
+  z-index: 4;
+}
+
+.item {
+  width: 30px;
+  height: 30px;
+  background-color: var(--item-color);
+  border-radius: 50%;
+  position: absolute;
+  border: 2px solid #27ae60;
+  box-shadow: inset 0 0 5px rgba(255,255,255,0.5), 0 2px 4px rgba(0,0,0,0.2);
+  z-index: 4;
 }
 
 #score-board {
@@ -108,6 +134,12 @@ body {
 
 #score-board p {
   margin: 4px 0;
+}
+
+#item-timer-display {
+  color: #27ae60;
+  font-weight: bold;
+  font-size: 1.2rem;
 }
 
 .overlay {
