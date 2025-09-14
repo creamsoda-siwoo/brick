@@ -6,6 +6,8 @@
   --overlay-bg: rgba(255, 255, 255, 0.85);
   --button-color: #4CAF50;
   --button-hover-color: #45a049;
+  --secondary-button-color: #f44336;
+  --secondary-button-hover-color: #da190b;
 }
 
 * {
@@ -114,7 +116,7 @@ body {
     color: #555;
 }
 
-#difficulty-selection {
+#difficulty-selection, #pause-buttons {
     display: flex;
     flex-direction: column;
     gap: 15px;
@@ -145,6 +147,14 @@ body {
 .overlay button:active {
     transform: translateY(2px);
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+#back-to-start-button {
+    background-color: var(--secondary-button-color);
+}
+
+#back-to-start-button:hover {
+    background-color: var(--secondary-button-hover-color);
 }
 
 #pause-button {

@@ -16,10 +16,9 @@ const DIFFICULTY_LEVELS = {
   hard: { initialSpeed: 3.6, spawnInterval: 500, speedIncrease: 0.36, speedInterval: 4000 },
   very_hard: { initialSpeed: 4.2, spawnInterval: 400, speedIncrease: 0.42, speedInterval: 3500 },
 };
-type DifficultySetting = typeof DIFFICULTY_LEVELS[keyof typeof DIFFICULTY_LEVELS];
 
 // --- DOM Elements ---
-const root = document.getElementById('root')!;
+const root = document.getElementById('root');
 root.innerHTML = `
   <div id="game-container">
     <div id="score-board">
@@ -46,54 +45,60 @@ root.innerHTML = `
     </div>
     <div id="pause-screen" class="overlay hidden">
       <h1>일시정지</h1>
-      <button id="resume-button">계속하기</button>
+      <div id="pause-buttons">
+        <button id="resume-button">계속하기</button>
+        <button id="back-to-start-button">처음으로</button>
+      </div>
     </div>
   </div>
 `;
 
-const gameContainer = document.getElementById('game-container') as HTMLElement;
-const player = document.getElementById('player') as HTMLElement;
-const currentScoreEl = document.getElementById('current-score') as HTMLElement;
-const highScoreEl = document.getElementById('high-score') as HTMLElement;
-const startScreen = document.getElementById('start-screen') as HTMLElement;
-const gameOverScreen = document.getElementById('game-over-screen') as HTMLElement;
-const finalScoreEl = document.getElementById('final-score') as HTMLElement;
-const difficultySelection = document.getElementById('difficulty-selection') as HTMLElement;
-const restartButton = document.getElementById('restart-button') as HTMLButtonElement;
-const pauseButton = document.getElementById('pause-button') as HTMLButtonElement;
-const pauseScreen = document.getElementById('pause-screen') as HTMLElement;
-const resumeButton = document.getElementById('resume-button') as HTMLButtonElement;
+const gameContainer = document.getElementById('game-container');
+const player = document.getElementById('player');
+const currentScoreEl = document.getElementById('current-score');
+const highScoreEl = document.getElementById('high-score');
+const startScreen = document.getElementById('start-screen');
+const gameOverScreen = document.getElementById('game-over-screen');
+const finalScoreEl = document.getElementById('final-score');
+const difficultySelection = document.getElementById('difficulty-selection');
+const restartButton = document.getElementById('restart-button');
+const pauseButton = document.getElementById('pause-button');
+const pauseScreen = document.getElementById('pause-screen');
+const resumeButton = document.getElementById('resume-button');
+const backToStartButton = document.getElementById('back-to-start-button');
 
 
 // --- Game State ---
-let playerX: number;
-let score: number;
-let highScore: number;
-let brickSpeed: number;
-let bricks: HTMLElement[] = [];
-let keys: { [key: string]: boolean } = {};
-let gameLoopId: number;
-let brickSpawnTimer: number;
-let speedIncreaseTimer: number;
-let gameStartTime: number;
+let playerX;
+let score;
+let highScore;
+let brickSpeed;
+let bricks = [];
+let keys = {};
+let gameLoopId;
+let brickSpawnTimer;
+let speedIncreaseTimer;
+let gameStartTime;
 let isPaused = false;
-let pauseStartTime: number;
-let currentDifficulty: DifficultySetting;
+let pauseStartTime;
+let currentDifficulty;
 
 // --- Initialization ---
 function init() {
     loadHighScore();
     setupControls();
     difficultySelection.addEventListener('click', (e) => {
+        // Fix: Cast e.target to HTMLElement to access element-specific properties like 'matches' and 'dataset'.
         const target = e.target as HTMLElement;
         if (target.matches('.difficulty-btn')) {
-            const difficulty = target.dataset.difficulty as keyof typeof DIFFICULTY_LEVELS;
-            if (difficulty) {
+            const difficulty = target.dataset.difficulty;
+            if (difficulty && DIFFICULTY_LEVELS[difficulty]) {
                 startGame(DIFFICULTY_LEVELS[difficulty]);
             }
         }
     });
     restartButton.addEventListener('click', showStartScreen);
+    backToStartButton.addEventListener('click', goBackToStart);
 }
 
 function showStartScreen() {
@@ -101,6 +106,21 @@ function showStartScreen() {
     startScreen.classList.remove('hidden');
     pauseButton.classList.add('hidden');
 }
+
+function goBackToStart() {
+    isPaused = false;
+    cancelAnimationFrame(gameLoopId);
+    clearInterval(brickSpawnTimer);
+    clearInterval(speedIncreaseTimer);
+    saveHighScore();
+
+    bricks.forEach(brick => brick.remove());
+    bricks = [];
+
+    pauseScreen.classList.add('hidden');
+    showStartScreen();
+}
+
 
 function loadHighScore() {
     highScore = parseInt(localStorage.getItem('brickDodgerHighScore') || '0', 10);
@@ -115,7 +135,7 @@ function saveHighScore() {
     }
 }
 
-function resetGame(initialSpeed: number) {
+function resetGame(initialSpeed) {
     // Reset state
     playerX = gameContainer.clientWidth / 2 - PLAYER_WIDTH / 2;
     score = 0;
@@ -135,7 +155,7 @@ function resetGame(initialSpeed: number) {
     cancelAnimationFrame(gameLoopId);
 }
 
-function startGame(difficulty: DifficultySetting) {
+function startGame(difficulty) {
     currentDifficulty = difficulty;
     resetGame(difficulty.initialSpeed);
 
@@ -219,7 +239,7 @@ function updateBricks() {
     }
 }
 
-function checkCollisions(): boolean {
+function checkCollisions() {
     const playerRect = player.getBoundingClientRect();
     for (const brick of bricks) {
         const brickRect = brick.getBoundingClientRect();
@@ -247,7 +267,7 @@ function endGame() {
 }
 
 function pauseGame() {
-    if (isPaused) return;
+    if (isPaused || !gameLoopId) return;
     isPaused = true;
     pauseStartTime = Date.now();
     cancelAnimationFrame(gameLoopId);
@@ -298,10 +318,10 @@ function setupControls() {
     });
 
     pauseButton.addEventListener('click', togglePause);
-    resumeButton.addEventListener('click', togglePause);
+    resumeButton.addEventListener('click', resumeGame);
 
     // Touch and Mouse controls
-    const handleMove = (clientX: number) => {
+    const handleMove = (clientX) => {
         if (isPaused) return; // Prevent movement when paused
         const rect = gameContainer.getBoundingClientRect();
         let newPlayerX = clientX - rect.left - PLAYER_WIDTH / 2;
