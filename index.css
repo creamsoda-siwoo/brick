@@ -9,7 +9,8 @@
   --button-hover-color: #45a049;
   --secondary-button-color: #f44336;
   --secondary-button-hover-color: #da190b;
-  --item-color: #2ecc71; /* Emerald green */
+  --item-slow-color: #2ecc71; /* Emerald green */
+  --item-shield-color: #3498db; /* Peter River Blue */
 }
 
 * {
@@ -96,6 +97,18 @@ body {
   border: 1px solid #0056b3;
   box-shadow: inset 0 -2px 0 rgba(0,0,0,0.3);
   z-index: 6; /* Player is in front of walls */
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+#player.shielded {
+  box-shadow: 0 0 15px 5px rgba(52, 152, 219, 0.8), inset 0 -2px 0 rgba(0,0,0,0.3);
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 15px 5px rgba(52, 152, 219, 0.8), inset 0 -2px 0 rgba(0,0,0,0.3); }
+  50% { box-shadow: 0 0 20px 8px rgba(52, 152, 219, 0.6), inset 0 -2px 0 rgba(0,0,0,0.3); }
+  100% { box-shadow: 0 0 15px 5px rgba(52, 152, 219, 0.8), inset 0 -2px 0 rgba(0,0,0,0.3); }
 }
 
 .brick {
@@ -112,13 +125,22 @@ body {
 .item {
   width: 30px;
   height: 30px;
-  background-color: var(--item-color);
   border-radius: 50%;
   position: absolute;
-  border: 2px solid #27ae60;
   box-shadow: inset 0 0 5px rgba(255,255,255,0.5), 0 2px 4px rgba(0,0,0,0.2);
   z-index: 4;
 }
+
+.item-slow {
+  background-color: var(--item-slow-color);
+  border: 2px solid #27ae60;
+}
+
+.item-shield {
+  background-color: var(--item-shield-color);
+  border: 2px solid #2980b9;
+}
+
 
 #score-board {
   position: absolute;
@@ -136,11 +158,18 @@ body {
   margin: 4px 0;
 }
 
-#item-timer-display {
+#item-timer-slow-display {
   color: #27ae60;
   font-weight: bold;
   font-size: 1.2rem;
 }
+
+#item-timer-shield-display {
+  color: #2980b9;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
 
 .overlay {
   position: absolute;

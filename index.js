@@ -14,8 +14,9 @@ window.addEventListener('DOMContentLoaded', () => {
     const WALL_WIDTH = 10;
     const ITEM_WIDTH = 30;
     const ITEM_HEIGHT = 30;
-    const ITEM_SPAWN_CHANCE = 0.05; // 5% chance per spawn interval
+    const ITEM_SPAWN_CHANCE = 0.08; // 8% chance to spawn an item
     const SLOW_EFFECT_DURATION = 5000; // 5 seconds in ms
+    const SHIELD_EFFECT_DURATION = 5000; // 5 seconds in ms
 
     const DIFFICULTY_LEVELS = {
         easy: { initialSpeed: 2.4, spawnInterval: 583, speedIncrease: 0.24, speedInterval: 5000 },
@@ -23,6 +24,11 @@ window.addEventListener('DOMContentLoaded', () => {
         hard: { initialSpeed: 3.6, spawnInterval: 417, speedIncrease: 0.36, speedInterval: 4000 },
         impossible: { initialSpeed: 5.0, spawnInterval: 250, speedIncrease: 0.50, speedInterval: 3000 },
         hell: { initialSpeed: 6.0, spawnInterval: 200, speedIncrease: 0.60, speedInterval: 2500 },
+    };
+    
+    const ITEM_TYPES = {
+        SLOW: 'slow',
+        SHIELD: 'shield'
     };
 
     // --- DOM Elements ---
@@ -39,8 +45,10 @@ window.addEventListener('DOMContentLoaded', () => {
     const pauseScreen = document.getElementById('pause-screen');
     const resumeButton = document.getElementById('resume-button');
     const backToStartButton = document.getElementById('back-to-start-button');
-    const itemTimerDisplay = document.getElementById('item-timer-display');
-    const itemTimerEl = document.getElementById('item-timer');
+    const itemTimerSlowDisplay = document.getElementById('item-timer-slow-display');
+    const itemTimerSlowEl = document.getElementById('item-timer-slow');
+    const itemTimerShieldDisplay = document.getElementById('item-timer-shield-display');
+    const itemTimerShieldEl = document.getElementById('item-timer-shield');
 
     // --- Game State ---
     let playerX;
@@ -61,6 +69,9 @@ window.addEventListener('DOMContentLoaded', () => {
     let isSlowed = false;
     let slowEffectTimer;
     let slowEffectEndTime;
+    let isShielded = false;
+    let shieldEffectTimer;
+    let shieldEffectEndTime;
 
     // --- Initialization ---
     function init() {
@@ -101,6 +112,7 @@ window.addEventListener('DOMContentLoaded', () => {
         items.forEach(item => item.remove());
         items = [];
         deactivateSlowEffect();
+        deactivateShieldEffect();
         pauseScreen.classList.add('hidden');
     }
 
@@ -109,10 +121,12 @@ window.addEventListener('DOMContentLoaded', () => {
         clearInterval(objectSpawnTimer);
         clearInterval(speedIncreaseTimer);
         clearTimeout(slowEffectTimer);
+        clearTimeout(shieldEffectTimer);
         gameLoopId = null;
         objectSpawnTimer = null;
         speedIncreaseTimer = null;
         slowEffectTimer = null;
+        shieldEffectTimer = null;
     }
 
     function loadHighScore() {
@@ -144,6 +158,7 @@ window.addEventListener('DOMContentLoaded', () => {
         items.forEach(item => item.remove());
         items = [];
         deactivateSlowEffect();
+        deactivateShieldEffect();
 
         clearAllTimers();
     }
@@ -193,7 +208,11 @@ window.addEventListener('DOMContentLoaded', () => {
     function updateItemTimerDisplay() {
         if (isSlowed) {
             const timeLeft = Math.max(0, (slowEffectEndTime - Date.now()) / 1000);
-            itemTimerEl.textContent = timeLeft.toFixed(1);
+            itemTimerSlowEl.textContent = timeLeft.toFixed(1);
+        }
+        if (isShielded) {
+            const timeLeft = Math.max(0, (shieldEffectEndTime - Date.now()) / 1000);
+            itemTimerShieldEl.textContent = timeLeft.toFixed(1);
         }
     }
 
@@ -216,7 +235,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
     function spawnObject() {
         if (Math.random() < ITEM_SPAWN_CHANCE) {
-            spawnItem();
+            // Spawn an item
+            const itemType = Math.random() < 0.5 ? ITEM_TYPES.SLOW : ITEM_TYPES.SHIELD;
+            spawnItem(itemType);
         } else {
             spawnBrick();
         }
@@ -235,9 +256,11 @@ window.addEventListener('DOMContentLoaded', () => {
         bricks.push(brick);
     }
 
-    function spawnItem() {
+    function spawnItem(type) {
         const item = document.createElement('div');
-        item.className = 'item';
+        item.className = `item item-${type}`;
+        item.dataset.type = type;
+
         const spawnAreaWidth = gameContainer.clientWidth - WALL_WIDTH * 2 - ITEM_WIDTH;
         const itemX = Math.random() * spawnAreaWidth + WALL_WIDTH;
 
@@ -284,7 +307,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
     function checkBrickCollisions() {
         const playerRect = player.getBoundingClientRect();
-        for (const brick of bricks) {
+        for (let i = bricks.length - 1; i >= 0; i--) {
+            const brick = bricks[i];
             const brickRect = brick.getBoundingClientRect();
             if (
                 playerRect.left < brickRect.right &&
@@ -292,10 +316,16 @@ window.addEventListener('DOMContentLoaded', () => {
                 playerRect.top < brickRect.bottom &&
                 playerRect.bottom > brickRect.top
             ) {
-                return true;
+                if (isShielded) {
+                    brick.remove();
+                    bricks.splice(i, 1);
+                    // Continue checking other bricks, don't end the game
+                } else {
+                    return true; // Game over
+                }
             }
         }
-        return false;
+        return false; // No game-ending collision
     }
 
     function checkItemCollisions() {
@@ -309,9 +339,15 @@ window.addEventListener('DOMContentLoaded', () => {
                 playerRect.top < itemRect.bottom &&
                 playerRect.bottom > itemRect.top
             ) {
+                const type = item.dataset.type;
                 item.remove();
                 items.splice(i, 1);
-                activateSlowEffect();
+                
+                if (type === ITEM_TYPES.SLOW) {
+                    activateSlowEffect();
+                } else if (type === ITEM_TYPES.SHIELD) {
+                    activateShieldEffect();
+                }
             }
         }
     }
@@ -321,8 +357,7 @@ window.addEventListener('DOMContentLoaded', () => {
         isSlowed = true;
         slowEffectEndTime = Date.now() + SLOW_EFFECT_DURATION;
         gameContainer.classList.add('slow-effect');
-        itemTimerDisplay.classList.remove('hidden');
-
+        itemTimerSlowDisplay.classList.remove('hidden');
         slowEffectTimer = setTimeout(deactivateSlowEffect, SLOW_EFFECT_DURATION);
     }
     
@@ -331,13 +366,31 @@ window.addEventListener('DOMContentLoaded', () => {
         clearTimeout(slowEffectTimer);
         slowEffectTimer = null;
         gameContainer.classList.remove('slow-effect');
-        itemTimerDisplay.classList.add('hidden');
+        itemTimerSlowDisplay.classList.add('hidden');
+    }
+    
+    function activateShieldEffect() {
+        clearTimeout(shieldEffectTimer);
+        isShielded = true;
+        shieldEffectEndTime = Date.now() + SHIELD_EFFECT_DURATION;
+        player.classList.add('shielded');
+        itemTimerShieldDisplay.classList.remove('hidden');
+        shieldEffectTimer = setTimeout(deactivateShieldEffect, SHIELD_EFFECT_DURATION);
+    }
+
+    function deactivateShieldEffect() {
+        isShielded = false;
+        clearTimeout(shieldEffectTimer);
+        shieldEffectTimer = null;
+        player.classList.remove('shielded');
+        itemTimerShieldDisplay.classList.add('hidden');
     }
 
     function endGame() {
         saveHighScore();
         clearAllTimers();
         deactivateSlowEffect();
+        deactivateShieldEffect();
         finalScoreEl.textContent = score.toString();
         gameOverScreen.classList.remove('hidden');
         pauseButton.classList.add('hidden');
@@ -364,6 +417,16 @@ window.addEventListener('DOMContentLoaded', () => {
                 slowEffectTimer = setTimeout(deactivateSlowEffect, remainingSlowTime);
             } else {
                 deactivateSlowEffect();
+            }
+        }
+        
+        if (isShielded) {
+            shieldEffectEndTime += pausedDuration;
+            const remainingShieldTime = shieldEffectEndTime - Date.now();
+            if(remainingShieldTime > 0) {
+                shieldEffectTimer = setTimeout(deactivateShieldEffect, remainingShieldTime);
+            } else {
+                deactivateShieldEffect();
             }
         }
 
