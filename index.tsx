@@ -1,3 +1,4 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -8,51 +9,17 @@ const PLAYER_WIDTH = 50;
 const PLAYER_SPEED = 8;
 const BRICK_WIDTH = 40;
 const BRICK_HEIGHT = 20;
+const WALL_WIDTH = 10;
 
 const DIFFICULTY_LEVELS = {
-  very_easy: { initialSpeed: 1.8, spawnInterval: 800, speedIncrease: 0.18, speedInterval: 6000 },
-  easy: { initialSpeed: 2.4, spawnInterval: 700, speedIncrease: 0.24, speedInterval: 5000 },
-  normal: { initialSpeed: 3.0, spawnInterval: 600, speedIncrease: 0.30, speedInterval: 4500 },
-  hard: { initialSpeed: 3.6, spawnInterval: 500, speedIncrease: 0.36, speedInterval: 4000 },
-  very_hard: { initialSpeed: 4.2, spawnInterval: 400, speedIncrease: 0.42, speedInterval: 3500 },
+  easy: { initialSpeed: 2.4, spawnInterval: 583, speedIncrease: 0.24, speedInterval: 5000 }, // 700 / 1.2
+  normal: { initialSpeed: 3.0, spawnInterval: 500, speedIncrease: 0.30, speedInterval: 4500 }, // 600 / 1.2
+  hard: { initialSpeed: 3.6, spawnInterval: 417, speedIncrease: 0.36, speedInterval: 4000 }, // 500 / 1.2
+  impossible: { initialSpeed: 5.0, spawnInterval: 250, speedIncrease: 0.50, speedInterval: 3000 }, // 300 / 1.2
+  hell: { initialSpeed: 6.0, spawnInterval: 200, speedIncrease: 0.60, speedInterval: 2500 },
 };
 
 // --- DOM Elements ---
-const root = document.getElementById('root');
-root.innerHTML = `
-  <div id="game-container">
-    <div id="score-board">
-        <p>점수: <span id="current-score">0</span></p>
-        <p>최고 점수: <span id="high-score">0</span></p>
-    </div>
-    <button id="pause-button" class="hidden">||</button>
-    <div id="player"></div>
-    <div id="start-screen" class="overlay">
-      <h1>벽돌 피하기</h1>
-      <p>난이도를 선택하세요!</p>
-      <div id="difficulty-selection">
-        <button class="difficulty-btn" data-difficulty="very_easy">매우 쉬움</button>
-        <button class="difficulty-btn" data-difficulty="easy">쉬움</button>
-        <button class="difficulty-btn" data-difficulty="normal">보통</button>
-        <button class="difficulty-btn" data-difficulty="hard">어려움</button>
-        <button class="difficulty-btn" data-difficulty="very_hard">매우 어려움</button>
-      </div>
-    </div>
-    <div id="game-over-screen" class="overlay hidden">
-      <h1>게임 오버</h1>
-      <p>최종 점수: <span id="final-score">0</span></p>
-      <button id="restart-button">처음으로</button>
-    </div>
-    <div id="pause-screen" class="overlay hidden">
-      <h1>일시정지</h1>
-      <div id="pause-buttons">
-        <button id="resume-button">계속하기</button>
-        <button id="back-to-start-button">처음으로</button>
-      </div>
-    </div>
-  </div>
-`;
-
 const gameContainer = document.getElementById('game-container');
 const player = document.getElementById('player');
 const currentScoreEl = document.getElementById('current-score');
@@ -81,37 +48,38 @@ let speedIncreaseTimer;
 let gameStartTime;
 let isPaused = false;
 let pauseStartTime;
-let currentDifficulty;
+let currentGameConfig;
+let currentSpawnInterval;
+
 
 // --- Initialization ---
 function init() {
     loadHighScore();
     setupControls();
+
     difficultySelection.addEventListener('click', (e) => {
-        // Fix: Cast e.target to HTMLElement to access element-specific properties like 'matches' and 'dataset'.
-        const target = e.target as HTMLElement;
-        if (target.matches('.difficulty-btn')) {
+        const target = e.target;
+        if (target instanceof HTMLElement && target.matches('.difficulty-btn')) {
             const difficulty = target.dataset.difficulty;
             if (difficulty && DIFFICULTY_LEVELS[difficulty]) {
                 startGame(DIFFICULTY_LEVELS[difficulty]);
             }
         }
     });
+
     restartButton.addEventListener('click', showStartScreen);
     backToStartButton.addEventListener('click', goBackToStart);
 }
 
 function showStartScreen() {
     gameOverScreen.classList.add('hidden');
-    startScreen.classList.remove('hidden');
     pauseButton.classList.add('hidden');
+    startScreen.classList.remove('hidden');
 }
 
 function goBackToStart() {
     isPaused = false;
-    cancelAnimationFrame(gameLoopId);
-    clearInterval(brickSpawnTimer);
-    clearInterval(speedIncreaseTimer);
+    clearAllTimers();
     saveHighScore();
 
     bricks.forEach(brick => brick.remove());
@@ -119,6 +87,15 @@ function goBackToStart() {
 
     pauseScreen.classList.add('hidden');
     showStartScreen();
+}
+
+function clearAllTimers() {
+    cancelAnimationFrame(gameLoopId);
+    clearInterval(brickSpawnTimer);
+    clearInterval(speedIncreaseTimer);
+    gameLoopId = null;
+    brickSpawnTimer = null;
+    speedIncreaseTimer = null;
 }
 
 
@@ -136,39 +113,36 @@ function saveHighScore() {
 }
 
 function resetGame(initialSpeed) {
-    // Reset state
-    playerX = gameContainer.clientWidth / 2 - PLAYER_WIDTH / 2;
+    const playableWidth = gameContainer.clientWidth - WALL_WIDTH * 2;
+    playerX = WALL_WIDTH + (playableWidth - PLAYER_WIDTH) / 2;
     score = 0;
     brickSpeed = initialSpeed;
     gameStartTime = Date.now();
     isPaused = false;
 
-    // Reset DOM
     player.style.left = `${playerX}px`;
     currentScoreEl.textContent = '0';
     
-    // Clear old elements and timers
     bricks.forEach(brick => brick.remove());
     bricks = [];
-    clearInterval(brickSpawnTimer);
-    clearInterval(speedIncreaseTimer);
-    cancelAnimationFrame(gameLoopId);
+    clearAllTimers();
 }
 
-function startGame(difficulty) {
-    currentDifficulty = difficulty;
-    resetGame(difficulty.initialSpeed);
+function startGame(config) {
+    currentGameConfig = config;
+    resetGame(currentGameConfig.initialSpeed);
+    currentSpawnInterval = currentGameConfig.spawnInterval;
 
+    speedIncreaseTimer = window.setInterval(() => {
+        brickSpeed += currentGameConfig.speedIncrease;
+    }, currentGameConfig.speedInterval);
+    
     startScreen.classList.add('hidden');
     gameOverScreen.classList.add('hidden');
     pauseScreen.classList.add('hidden');
     pauseButton.classList.remove('hidden');
 
-    brickSpawnTimer = window.setInterval(spawnBrick, difficulty.spawnInterval);
-    speedIncreaseTimer = window.setInterval(() => {
-        brickSpeed += difficulty.speedIncrease;
-    }, difficulty.speedInterval);
-
+    brickSpawnTimer = window.setInterval(spawnBrick, currentSpawnInterval);
     gameLoopId = requestAnimationFrame(gameLoop);
 }
 
@@ -201,12 +175,10 @@ function updatePlayerPosition() {
         playerX += PLAYER_SPEED;
     }
 
-    // Boundary checks
-    if (playerX < 0) {
-        playerX = 0;
-    }
-    if (playerX > gameContainer.clientWidth - PLAYER_WIDTH) {
-        playerX = gameContainer.clientWidth - PLAYER_WIDTH;
+    const rightBoundary = gameContainer.clientWidth - WALL_WIDTH - PLAYER_WIDTH;
+    if (playerX < WALL_WIDTH) playerX = WALL_WIDTH;
+    if (playerX > rightBoundary) {
+        playerX = rightBoundary;
     }
 
     player.style.left = `${playerX}px`;
@@ -215,7 +187,9 @@ function updatePlayerPosition() {
 function spawnBrick() {
     const brick = document.createElement('div');
     brick.className = 'brick';
-    const brickX = Math.random() * (gameContainer.clientWidth - BRICK_WIDTH);
+    const spawnAreaWidth = gameContainer.clientWidth - WALL_WIDTH * 2 - BRICK_WIDTH;
+    const brickX = Math.random() * spawnAreaWidth + WALL_WIDTH;
+
     brick.style.left = `${brickX}px`;
     brick.style.top = `-${BRICK_HEIGHT}px`;
     
@@ -256,9 +230,7 @@ function checkCollisions() {
 }
 
 function endGame() {
-    cancelAnimationFrame(gameLoopId);
-    clearInterval(brickSpawnTimer);
-    clearInterval(speedIncreaseTimer);
+    clearAllTimers();
     saveHighScore();
 
     finalScoreEl.textContent = score.toString();
@@ -270,9 +242,7 @@ function pauseGame() {
     if (isPaused || !gameLoopId) return;
     isPaused = true;
     pauseStartTime = Date.now();
-    cancelAnimationFrame(gameLoopId);
-    clearInterval(brickSpawnTimer);
-    clearInterval(speedIncreaseTimer);
+    clearAllTimers();
     pauseScreen.classList.remove('hidden');
 }
 
@@ -284,10 +254,12 @@ function resumeGame() {
 
     pauseScreen.classList.add('hidden');
 
-    brickSpawnTimer = window.setInterval(spawnBrick, currentDifficulty.spawnInterval);
+    // Restart timers
     speedIncreaseTimer = window.setInterval(() => {
-        brickSpeed += currentDifficulty.speedIncrease;
-    }, currentDifficulty.speedInterval);
+        brickSpeed += currentGameConfig.speedIncrease;
+    }, currentGameConfig.speedInterval);
+
+    brickSpawnTimer = window.setInterval(spawnBrick, currentSpawnInterval);
 
     gameLoopId = requestAnimationFrame(gameLoop);
 }
@@ -295,7 +267,7 @@ function resumeGame() {
 function togglePause() {
     if (isPaused) {
         resumeGame();
-    } else {
+    } else if (gameLoopId) {
         pauseGame();
     }
 }
@@ -304,10 +276,7 @@ function togglePause() {
 function setupControls() {
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            const isGameRunning = !startScreen.classList.contains('hidden') && !gameOverScreen.classList.contains('hidden');
-            if (isGameRunning) {
-                togglePause();
-            }
+            togglePause();
         } else {
             keys[e.key] = true;
         }
@@ -320,20 +289,18 @@ function setupControls() {
     pauseButton.addEventListener('click', togglePause);
     resumeButton.addEventListener('click', resumeGame);
 
-    // Touch and Mouse controls
     const handleMove = (clientX) => {
-        if (isPaused) return; // Prevent movement when paused
+        if (isPaused || !gameLoopId) return;
         const rect = gameContainer.getBoundingClientRect();
         let newPlayerX = clientX - rect.left - PLAYER_WIDTH / 2;
 
-        // Boundary checks
-        if (newPlayerX < 0) newPlayerX = 0;
-        if (newPlayerX > gameContainer.clientWidth - PLAYER_WIDTH) {
-            newPlayerX = gameContainer.clientWidth - PLAYER_WIDTH;
+        const rightBoundary = gameContainer.clientWidth - WALL_WIDTH - PLAYER_WIDTH;
+        if (newPlayerX < WALL_WIDTH) newPlayerX = WALL_WIDTH;
+        if (newPlayerX > rightBoundary) {
+            newPlayerX = rightBoundary;
         }
         
         playerX = newPlayerX;
-        // The position will be visually updated in the next gameLoop frame
     };
 
     gameContainer.addEventListener('touchmove', (e) => {
