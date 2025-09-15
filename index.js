@@ -101,14 +101,23 @@ window.addEventListener('load', () => {
     }
 
     function loadHighScore() {
-        highScore = parseInt(localStorage.getItem('brickDodgerHighScore') || '0', 10);
+        try {
+            highScore = parseInt(localStorage.getItem('brickDodgerHighScore') || '0', 10);
+        } catch (e) {
+            console.warn('Failed to access localStorage. High score feature will be disabled.', e);
+            highScore = 0;
+        }
         highScoreEl.textContent = highScore.toString();
     }
 
     function saveHighScore() {
         if (score > highScore) {
             highScore = score;
-            localStorage.setItem('brickDodgerHighScore', highScore.toString());
+            try {
+                localStorage.setItem('brickDodgerHighScore', highScore.toString());
+            } catch (e) {
+                 console.warn('Failed to access localStorage. High score could not be saved.', e);
+            }
             highScoreEl.textContent = highScore.toString();
         }
     }
