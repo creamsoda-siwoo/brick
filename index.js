@@ -99,6 +99,8 @@ window.addEventListener('load', () => {
         let slowMoTimeoutId = null;
         let feverTimeoutId = null;
         let isDragging = false;
+        let isInvincible = false;
+        let invincibilityTimeoutId = null;
 
 
         // --- Player Control Handlers ---
@@ -325,23 +327,28 @@ window.addEventListener('load', () => {
             if (speedIncreaseTimer) clearInterval(speedIncreaseTimer);
             if (slowMoTimeoutId) clearTimeout(slowMoTimeoutId);
             if (feverTimeoutId) clearTimeout(feverTimeoutId);
+            if (invincibilityTimeoutId) clearTimeout(invincibilityTimeoutId);
             gameLoopId = null;
             brickSpawnTimer = null;
             itemSpawnTimer = null;
             speedIncreaseTimer = null;
             slowMoTimeoutId = null;
             feverTimeoutId = null;
+            invincibilityTimeoutId = null;
         }
 
         function resetItemEffects() {
             isShieldActive = false;
             isFeverActive = false;
-            player.classList.remove('shield-active', 'fever-active');
+            isInvincible = false;
+            player.classList.remove('shield-active', 'fever-active', 'invincible');
             itemStatusEl.innerHTML = '';
             if (slowMoTimeoutId) clearTimeout(slowMoTimeoutId);
             if (feverTimeoutId) clearTimeout(feverTimeoutId);
+            if (invincibilityTimeoutId) clearTimeout(invincibilityTimeoutId);
             slowMoTimeoutId = null;
             feverTimeoutId = null;
+            invincibilityTimeoutId = null;
         }
 
 
@@ -545,14 +552,21 @@ window.addEventListener('load', () => {
                         isShieldActive = false;
                         player.classList.remove('shield-active');
                         createParticles(brickCenterX, brickCenterY, 'cyan');
-                    } else {
+                    } else if (!isInvincible) {
                         health--;
                         updateHealthUI();
-                        player.classList.add('hit');
-                        setTimeout(() => player.classList.remove('hit'), 400);
         
                         if (health <= 0) {
                             isGameOver = true;
+                        } else {
+                            // Activate 2-second invincibility
+                            isInvincible = true;
+                            player.classList.add('invincible');
+                            invincibilityTimeoutId = setTimeout(() => {
+                                isInvincible = false;
+                                player.classList.remove('invincible');
+                                invincibilityTimeoutId = null;
+                            }, 2000);
                         }
                     }
                 }
