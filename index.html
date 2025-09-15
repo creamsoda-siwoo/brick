@@ -5,10 +5,224 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>벽돌 피하기</title>
-  <link rel="stylesheet" href="./index.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --game-bg: #87CEEB; /* Sky Blue */
+      --text-color: #333;
+      --player-color: #007BFF; /* Blue */
+      --brick-color: #A52A2A; /* Brown */
+      --overlay-bg: rgba(255, 255, 255, 0.85);
+      --button-color: #4CAF50;
+      --button-hover-color: #45a049;
+      --secondary-button-color: #f44336;
+      --secondary-button-hover-color: #da190b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #f0f0f0;
+    }
+
+    #root {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    #game-container {
+      width: 100%;
+      max-width: 400px;
+      height: 100%;
+      max-height: 700px;
+      background-color: var(--game-bg);
+      position: relative;
+      overflow: hidden;
+      border: 2px solid #333;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      user-select: none;
+      touch-action: none; /* Prevents default touch actions like scrolling */
+    }
+
+    .wall {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 10px;
+      background-color: #6d4c41;
+      z-index: 5;
+      box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+    }
+
+    #left-wall {
+      left: 0;
+    }
+
+    #right-wall {
+      right: 0;
+    }
+
+    #player {
+      width: 50px;
+      height: 20px;
+      background: linear-gradient(180deg, #4da3ff, var(--player-color));
+      border-radius: 8px;
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 1px solid #0056b3;
+      box-shadow: inset 0 -2px 0 rgba(0,0,0,0.3);
+      z-index: 6; /* Player is in front of walls */
+    }
+
+    .brick {
+      width: 40px;
+      height: 20px;
+      background: linear-gradient(180deg, #e08d5b, var(--brick-color));
+      position: absolute;
+      border-radius: 2px;
+      border: 1px solid #800000;
+      box-shadow: inset 0 -2px 0 rgba(0,0,0,0.2);
+      z-index: 4;
+    }
+
+    #score-board {
+      position: absolute;
+      top: 10px;
+      width: 100%;
+      text-align: center;
+      color: var(--text-color);
+      font-size: 1.5rem;
+      font-weight: bold;
+      z-index: 10;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    }
+
+    #score-board p {
+      margin: 4px 0;
+    }
+
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: var(--overlay-bg);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      z-index: 20;
+      padding: 20px;
+    }
+
+    .overlay h1 {
+      font-size: 3rem;
+      color: var(--text-color);
+      margin-bottom: 20px;
+    }
+
+    .overlay p {
+        font-size: 1.2rem;
+        margin-bottom: 30px;
+        color: #555;
+    }
+
+    #mode-selection-buttons,
+    #difficulty-selection, 
+    #pause-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        width: 80%;
+        max-width: 250px;
+    }
+
+    .overlay button {
+      width: 100%;
+      max-width: 250px;
+      padding: 15px 20px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      font-family: 'Noto Sans KR', sans-serif;
+      color: white;
+      background-color: var(--button-color);
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.1s ease;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .overlay button:hover {
+      background-color: var(--button-hover-color);
+    }
+
+    .overlay button:active {
+        transform: translateY(2px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    #back-to-start-button {
+        background-color: var(--secondary-button-color);
+    }
+
+    #back-to-start-button:hover {
+        background-color: var(--secondary-button-hover-color);
+    }
+
+    #pause-button {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      width: 40px;
+      height: 40px;
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--text-color);
+      background-color: rgba(255, 255, 255, 0.6);
+      border: 2px solid var(--text-color);
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 15;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      line-height: 1;
+      padding-bottom: 2px; /* Visual alignment for the pause icon */
+      transition: background-color 0.2s ease;
+    }
+
+    #pause-button:hover {
+      background-color: rgba(255, 255, 255, 0.9);
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
 </head>
 <body>
   <div id="root">
@@ -51,6 +265,326 @@
       </div>
     </div>
   </div>
-  <script src="./index.js"></script>
+  <script>
+    /**
+     * @license
+     * SPDX-License-Identifier: Apache-2.0
+    */
+
+    window.addEventListener('DOMContentLoaded', () => {
+
+        // --- Game Configuration ---
+        const PLAYER_WIDTH = 50;
+        const PLAYER_SPEED = 8;
+        const BRICK_WIDTH = 40;
+        const BRICK_HEIGHT = 20;
+        const WALL_WIDTH = 10;
+
+        const DIFFICULTY_LEVELS = {
+            easy: { initialSpeed: 2.4, spawnInterval: 583, speedIncrease: 0.24, speedInterval: 5000 },
+            normal: { initialSpeed: 3.0, spawnInterval: 500, speedIncrease: 0.30, speedInterval: 4500 },
+            hard: { initialSpeed: 3.6, spawnInterval: 417, speedIncrease: 0.36, speedInterval: 4000 },
+            impossible: { initialSpeed: 5.0, spawnInterval: 250, speedIncrease: 0.50, speedInterval: 3000 },
+            hell: { initialSpeed: 6.0, spawnInterval: 200, speedIncrease: 0.60, speedInterval: 2500 },
+        };
+        
+        // --- DOM Elements ---
+        const gameContainer = document.getElementById('game-container');
+        const player = document.getElementById('player');
+        const currentScoreEl = document.getElementById('current-score');
+        const highScoreEl = document.getElementById('high-score');
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const finalScoreEl = document.getElementById('final-score');
+        const difficultySelection = document.getElementById('difficulty-selection');
+        const restartButton = document.getElementById('restart-button');
+        const pauseButton = document.getElementById('pause-button');
+        const pauseScreen = document.getElementById('pause-screen');
+        const resumeButton = document.getElementById('resume-button');
+        const backToStartButton = document.getElementById('back-to-start-button');
+
+        // --- Game State ---
+        let playerX;
+        let score;
+        let highScore;
+        let brickSpeed;
+        let bricks = [];
+        let keys = {};
+        let gameLoopId;
+        let objectSpawnTimer;
+        let speedIncreaseTimer;
+        let gameStartTime;
+        let isPaused = false;
+        let pauseStartTime;
+        let currentGameConfig;
+        let currentSpawnInterval;
+
+        // --- Initialization ---
+        function init() {
+            loadHighScore();
+            setupControls();
+
+            difficultySelection.addEventListener('click', (e) => {
+                const target = e.target;
+                if (target instanceof HTMLElement && target.matches('.difficulty-btn')) {
+                    const difficulty = target.dataset.difficulty;
+                    if (difficulty && DIFFICULTY_LEVELS[difficulty]) {
+                        startGame(DIFFICULTY_LEVELS[difficulty]);
+                    }
+                }
+            });
+
+            restartButton.addEventListener('click', showStartScreen);
+            backToStartButton.addEventListener('click', goBackToStart);
+        }
+
+        function showStartScreen() {
+            gameOverScreen.classList.add('hidden');
+            pauseButton.classList.add('hidden');
+            startScreen.classList.remove('hidden');
+        }
+
+        function goBackToStart() {
+            endGameCleanup();
+            showStartScreen();
+        }
+        
+        function endGameCleanup() {
+            isPaused = false;
+            saveHighScore();
+            clearAllTimers();
+            bricks.forEach(brick => brick.remove());
+            bricks = [];
+            pauseScreen.classList.add('hidden');
+        }
+
+        function clearAllTimers() {
+            cancelAnimationFrame(gameLoopId);
+            clearInterval(objectSpawnTimer);
+            clearInterval(speedIncreaseTimer);
+            gameLoopId = null;
+            objectSpawnTimer = null;
+            speedIncreaseTimer = null;
+        }
+
+        function loadHighScore() {
+            highScore = parseInt(localStorage.getItem('brickDodgerHighScore') || '0', 10);
+            highScoreEl.textContent = highScore.toString();
+        }
+
+        function saveHighScore() {
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('brickDodgerHighScore', highScore.toString());
+                highScoreEl.textContent = highScore.toString();
+            }
+        }
+
+        function resetGame(initialSpeed) {
+            const playableWidth = gameContainer.clientWidth - WALL_WIDTH * 2;
+            playerX = WALL_WIDTH + (playableWidth - PLAYER_WIDTH) / 2;
+            score = 0;
+            brickSpeed = initialSpeed;
+            gameStartTime = Date.now();
+            isPaused = false;
+
+            player.style.left = `${playerX}px`;
+            currentScoreEl.textContent = '0';
+            
+            bricks.forEach(brick => brick.remove());
+            bricks = [];
+
+            clearAllTimers();
+        }
+
+        function startGame(config) {
+            currentGameConfig = config;
+            resetGame(currentGameConfig.initialSpeed);
+            currentSpawnInterval = currentGameConfig.spawnInterval;
+
+            speedIncreaseTimer = window.setInterval(() => {
+                brickSpeed += currentGameConfig.speedIncrease;
+            }, currentGameConfig.speedInterval);
+            
+            startScreen.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+            pauseScreen.classList.add('hidden');
+            pauseButton.classList.remove('hidden');
+
+            objectSpawnTimer = window.setInterval(spawnBrick, currentSpawnInterval);
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
+
+        // --- Game Loop ---
+        function gameLoop() {
+            if (isPaused) return;
+
+            updatePlayerPosition();
+            updateBricks();
+            updateScore();
+            
+            if (checkBrickCollisions()) {
+                endGame();
+                return;
+            }
+            
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
+
+        function updateScore() {
+            score = Math.floor((Date.now() - gameStartTime) / 100);
+            currentScoreEl.textContent = score.toString();
+        }
+
+        function updatePlayerPosition() {
+            if (keys['ArrowLeft'] || keys['a']) {
+                playerX -= PLAYER_SPEED;
+            }
+            if (keys['ArrowRight'] || keys['d']) {
+                playerX += PLAYER_SPEED;
+            }
+
+            const rightBoundary = gameContainer.clientWidth - WALL_WIDTH - PLAYER_WIDTH;
+            if (playerX < WALL_WIDTH) playerX = WALL_WIDTH;
+            if (playerX > rightBoundary) {
+                playerX = rightBoundary;
+            }
+
+            player.style.left = `${playerX}px`;
+        }
+
+        function spawnBrick() {
+            const brick = document.createElement('div');
+            brick.className = 'brick';
+            const spawnAreaWidth = gameContainer.clientWidth - WALL_WIDTH * 2 - BRICK_WIDTH;
+            const brickX = Math.random() * spawnAreaWidth + WALL_WIDTH;
+
+            brick.style.left = `${brickX}px`;
+            brick.style.top = `-${BRICK_HEIGHT}px`;
+            
+            gameContainer.appendChild(brick);
+            bricks.push(brick);
+        }
+
+        function updateBricks() {
+            const containerHeight = gameContainer.clientHeight;
+            for (let i = bricks.length - 1; i >= 0; i--) {
+                const brick = bricks[i];
+                const currentTop = parseFloat(brick.style.top);
+                const newTop = currentTop + brickSpeed;
+                
+                if (newTop > containerHeight) {
+                    brick.remove();
+                    bricks.splice(i, 1);
+                } else {
+                    brick.style.top = `${newTop}px`;
+                }
+            }
+        }
+
+        function checkBrickCollisions() {
+            const playerRect = player.getBoundingClientRect();
+            for (const brick of bricks) {
+                const brickRect = brick.getBoundingClientRect();
+                if (
+                    playerRect.left < brickRect.right &&
+                    playerRect.right > brickRect.left &&
+                    playerRect.top < brickRect.bottom &&
+                    playerRect.bottom > brickRect.top
+                ) {
+                    return true; // Game over
+                }
+            }
+            return false; // No collision
+        }
+
+        function endGame() {
+            saveHighScore();
+            clearAllTimers();
+            finalScoreEl.textContent = score.toString();
+            gameOverScreen.classList.remove('hidden');
+            pauseButton.classList.add('hidden');
+        }
+
+        function pauseGame() {
+            if (isPaused || !gameLoopId) return;
+            isPaused = true;
+            pauseStartTime = Date.now();
+            clearAllTimers();
+            pauseScreen.classList.remove('hidden');
+        }
+
+        function resumeGame() {
+            if (!isPaused) return;
+            isPaused = false;
+            const pausedDuration = Date.now() - pauseStartTime;
+            gameStartTime += pausedDuration;
+
+            pauseScreen.classList.add('hidden');
+
+            speedIncreaseTimer = window.setInterval(() => {
+                brickSpeed += currentGameConfig.speedIncrease;
+            }, currentGameConfig.speedInterval);
+
+            objectSpawnTimer = window.setInterval(spawnBrick, currentSpawnInterval);
+
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
+
+        function togglePause() {
+            if (isPaused) {
+                resumeGame();
+            } else if (gameLoopId) {
+                pauseGame();
+            }
+        }
+
+        // --- Controls ---
+        function setupControls() {
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    togglePause();
+                } else {
+                    keys[e.key] = true;
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                keys[e.key] = false;
+            });
+
+            pauseButton.addEventListener('click', togglePause);
+            resumeButton.addEventListener('click', resumeGame);
+
+            const handleMove = (clientX) => {
+                if (isPaused || !gameLoopId) return;
+                const rect = gameContainer.getBoundingClientRect();
+                let newPlayerX = clientX - rect.left - PLAYER_WIDTH / 2;
+
+                const rightBoundary = gameContainer.clientWidth - WALL_WIDTH - PLAYER_WIDTH;
+                if (newPlayerX < WALL_WIDTH) newPlayerX = WALL_WIDTH;
+                if (newPlayerX > rightBoundary) {
+                    newPlayerX = rightBoundary;
+                }
+                
+                playerX = newPlayerX;
+            };
+
+            gameContainer.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (e.touches.length > 0) {
+                    handleMove(e.touches[0].clientX);
+                }
+            }, { passive: false });
+
+            gameContainer.addEventListener('mousemove', (e) => {
+                handleMove(e.clientX);
+            });
+        }
+
+        // --- Start the app ---
+        init();
+    });
+  </script>
 </body>
 </html>
