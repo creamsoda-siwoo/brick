@@ -1,4 +1,5 @@
 
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -705,10 +706,8 @@ window.addEventListener('load', () => {
 
             // Touch Events
             gameContainer.addEventListener('touchstart', (e) => {
-                // Prevent default touch actions like scrolling or zooming
-                e.preventDefault();
                 handleDragStart(e);
-            }, { passive: false });
+            }, { passive: true });
             window.addEventListener('touchmove', handleDragMove, { passive: true });
             window.addEventListener('touchend', handleDragEnd);
             
