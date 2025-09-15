@@ -51,7 +51,26 @@ body {
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   user-select: none;
   touch-action: none; /* Prevents default touch actions like scrolling */
+  transition: background-color 0.5s ease;
 }
+
+#creator-credit {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: bold;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+  z-index: 15;
+}
+
+/* Background Skins */
+#game-container.bg-sky { background: #87CEEB; }
+#game-container.bg-night { background: linear-gradient(to bottom, #000428, #004e92); }
+#game-container.bg-sunset { background: linear-gradient(to bottom, #ff7e5f, #feb47b); }
+#game-container.bg-forest { background: linear-gradient(to bottom, #294832, #577d63); }
+
 
 .wall {
   position: absolute;
@@ -74,27 +93,156 @@ body {
 #player {
   width: 50px;
   height: 20px;
-  background: linear-gradient(180deg, #4da3ff, var(--player-color));
   border-radius: 8px;
   position: absolute;
   bottom: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 1px solid #0056b3;
   box-shadow: inset 0 -2px 0 rgba(0,0,0,0.3);
   z-index: 6; /* Player is in front of walls */
+  transition: box-shadow 0.2s ease;
 }
+
+/* Player Skins */
+#player.player-classic {
+  background: linear-gradient(180deg, #4da3ff, var(--player-color));
+  border: 1px solid #0056b3;
+}
+#player.player-racer {
+  background: linear-gradient(180deg, #ff416c, #ff4b2b);
+  border: 1px solid #c10f0f;
+}
+#player.player-stealth {
+  background: linear-gradient(180deg, #555, #222);
+  border: 1px solid #000;
+}
+#player.player-gold {
+  background: linear-gradient(180deg, #fff59d, #ffca28);
+  border: 1px solid #ff8f00;
+}
+#player.shield-active {
+    box-shadow: 0 0 15px 5px rgba(0, 255, 255, 0.8), inset 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+#player.hit {
+  animation: hit-blink 0.4s ease-in-out;
+}
+
+@keyframes hit-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+#player.fever-active {
+  animation: rainbow-glow 0.5s linear infinite;
+}
+
+@keyframes rainbow-glow {
+  0%   { box-shadow: 0 0 15px 5px #ff0000, inset 0 0 5px rgba(255, 255, 255, 0.5); }
+  16%  { box-shadow: 0 0 15px 5px #ff7f00, inset 0 0 5px rgba(255, 255, 255, 0.5); }
+  33%  { box-shadow: 0 0 15px 5px #ffff00, inset 0 0 5px rgba(255, 255, 255, 0.5); }
+  50%  { box-shadow: 0 0 15px 5px #00ff00, inset 0 0 5px rgba(255, 255, 255, 0.5); }
+  66%  { box-shadow: 0 0 15px 5px #0000ff, inset 0 0 5px rgba(255, 255, 255, 0.5); }
+  83%  { box-shadow: 0 0 15px 5px #4b0082, inset 0 0 5px rgba(255, 255, 255, 0.5); }
+  100% { box-shadow: 0 0 15px 5px #ee82ee, inset 0 0 5px rgba(255, 255, 255, 0.5); }
+}
+
 
 .brick {
   width: 40px;
   height: 20px;
-  background: linear-gradient(180deg, #e08d5b, var(--brick-color));
   position: absolute;
   border-radius: 2px;
-  border: 1px solid #800000;
-  box-shadow: inset 0 -2px 0 rgba(0,0,0,0.2);
   z-index: 4;
 }
+
+/* Brick Skins */
+.brick.brick-classic {
+  background: linear-gradient(180deg, #e08d5b, var(--brick-color));
+  border: 1px solid #800000;
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,0.2);
+}
+
+.brick.brick-ice {
+  background: linear-gradient(180deg, #e1ffff, #b2ebf2);
+  border: 1px solid #4dd0e1;
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,0.1);
+}
+
+.brick.brick-gold {
+  background: linear-gradient(180deg, #fff59d, #ffca28);
+  border: 1px solid #ff8f00;
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,0.2);
+}
+
+.brick.brick-stone {
+  background: linear-gradient(180deg, #bdbdbd, #757575);
+  border: 1px solid #424242;
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,0.3);
+}
+
+.item {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  z-index: 4;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  color: white;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.item.shield {
+  background: radial-gradient(circle, #64b5f6, #1976d2);
+}
+.item.shield::before {
+  content: '🛡️';
+  font-size: 1.2rem;
+}
+
+.item.slow-mo {
+  background: radial-gradient(circle, #fff59d, #fbc02d);
+}
+.item.slow-mo::before {
+  content: '⏳';
+  font-size: 1.2rem;
+}
+
+.item.health {
+  background: radial-gradient(circle, #ff8a80, #d50000);
+}
+.item.health::before {
+  content: '❤️';
+  font-size: 1.2rem;
+}
+
+.item.fever {
+  background: radial-gradient(circle, #ff9800, #ff5722);
+}
+.item.fever::before {
+  content: '🔥';
+  font-size: 1.2rem;
+}
+
+.item.clear {
+  background: radial-gradient(circle, #888, #333);
+}
+.item.clear::before {
+  content: '💣';
+  font-size: 1.2rem;
+}
+
+.particle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    z-index: 100;
+    pointer-events: none; /* Make sure they don't interfere with clicks */
+}
+
 
 #score-board {
   position: absolute;
@@ -106,10 +254,50 @@ body {
   font-weight: bold;
   z-index: 10;
   text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 #score-board p {
   margin: 4px 0;
+}
+
+#health-bar {
+  font-size: 1.5rem;
+  line-height: 1;
+  text-shadow: 1px 1px 2px rgba(255,0,0,0.5);
+}
+
+#item-status {
+  font-size: 1.5rem;
+  margin-top: 5px;
+}
+
+#item-description {
+  background: rgba(0,0,0,0.1);
+  color: var(--text-color);
+  padding: 15px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  border: 1px solid rgba(0,0,0,0.1);
+  margin-bottom: 25px;
+  width: 90%;
+  max-width: 300px;
+  text-align: left;
+}
+
+#item-description h4 {
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(0,0,0,0.2);
+  padding-bottom: 5px;
+  text-align: center;
+  font-size: 1rem;
+}
+
+#item-description p {
+  margin: 5px 0;
+  color: #333;
 }
 
 .overlay {
@@ -126,6 +314,15 @@ body {
   text-align: center;
   z-index: 20;
   padding: 20px;
+}
+
+#pre-game-start-screen {
+  background-color: rgba(255, 255, 255, 0.7);
+}
+
+#pre-game-start-screen h1 {
+  font-size: 2rem;
+  color: #333;
 }
 
 .overlay h1 {
@@ -154,13 +351,24 @@ body {
 }
 
 #mode-selection-buttons,
-#difficulty-selection, 
-#pause-buttons {
+#difficulty-selection,
+#pause-buttons,
+#game-over-buttons {
     display: flex;
     flex-direction: column;
     gap: 15px;
     width: 80%;
     max-width: 250px;
+}
+
+#start-game-btn {
+  padding: 20px 40px;
+  font-size: 1.5rem;
+}
+
+#game-over-buttons {
+    flex-direction: row;
+    gap: 10px;
 }
 
 .overlay button {
@@ -179,6 +387,19 @@ body {
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
+#game-over-buttons button {
+  font-size: 1rem;
+  padding: 12px 15px;
+  flex: 1;
+  white-space: nowrap; /* Prevent text wrapping */
+}
+#select-difficulty-button {
+  background-color: #008CBA;
+}
+#select-difficulty-button:hover {
+  background-color: #007399;
+}
+
 .overlay button:hover {
   background-color: var(--button-hover-color);
 }
@@ -186,6 +407,13 @@ body {
 .overlay button:active {
     transform: translateY(2px);
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+#view-rankings-btn {
+  background-color: #008CBA;
+}
+#view-rankings-btn:hover {
+  background-color: #007399;
 }
 
 .difficulty-btn[data-difficulty="god"] {
@@ -197,11 +425,40 @@ body {
     background: linear-gradient(45deg, #ffA500, #ff1493);
 }
 
-#back-to-start-button {
+.difficulty-btn[data-difficulty="transcendence"] {
+    background: linear-gradient(45deg, #480048, #C04848);
+    border: 2px solid white;
+}
+.difficulty-btn[data-difficulty="transcendence"]:hover {
+    background: linear-gradient(45deg, #600060, #D05858);
+}
+
+.back-button {
+  margin-top: 20px;
+  background-color: #6c757d;
+}
+
+.back-button:hover {
+  background-color: #5a6268;
+}
+
+#start-screen #customize-btn {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  width: auto;
+  max-width: none;
+  padding: 10px 20px;
+  font-size: 1rem;
+}
+
+#back-to-start-button,
+#back-to-start-game-over-btn {
     background-color: var(--secondary-button-color);
 }
 
-#back-to-start-button:hover {
+#back-to-start-button:hover,
+#back-to-start-game-over-btn:hover {
     background-color: var(--secondary-button-hover-color);
 }
 
@@ -229,6 +486,97 @@ body {
 
 #pause-button:hover {
   background-color: rgba(255, 255, 255, 0.9);
+}
+
+/* Customize Screen */
+.customize-section {
+  width: 100%;
+  margin-bottom: 20px;
+}
+.customize-section h2 {
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+  color: #444;
+}
+.skin-selection-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 15px;
+}
+.skin-option {
+  width: 60px;
+  height: 60px;
+  border: 3px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+.skin-option:hover {
+  transform: scale(1.05);
+}
+.skin-option.selected {
+  border-color: #007bff;
+  box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+}
+
+.skin-option.brick-preview {
+    height: 40px; /* Adjust height for brick aspect ratio */
+}
+
+.skin-option.player-preview {
+    width: 50px;
+    height: 20px;
+    border-radius: 8px;
+}
+
+.player-preview.player-classic { background: linear-gradient(180deg, #4da3ff, var(--player-color)); border: 1px solid #0056b3; }
+.player-preview.player-racer { background: linear-gradient(180deg, #ff416c, #ff4b2b); border: 1px solid #c10f0f; }
+.player-preview.player-stealth { background: linear-gradient(180deg, #555, #222); border: 1px solid #000; }
+.player-preview.player-gold { background: linear-gradient(180deg, #fff59d, #ffca28); border: 1px solid #ff8f00; }
+
+/* Ranking Screen */
+#ranking-list {
+    list-style-type: none;
+    padding: 0;
+    width: 100%;
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+#ranking-list li {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 15px;
+    font-size: 1.1rem;
+    border-bottom: 1px solid #ddd;
+    color: #333;
+}
+
+#ranking-list li:last-child {
+    border-bottom: none;
+}
+
+#ranking-list .rank-position {
+    font-weight: bold;
+    min-width: 30px;
+}
+
+#ranking-list .rank-score {
+    flex-grow: 1;
+    text-align: center;
+}
+
+#ranking-list .rank-difficulty {
+    font-size: 0.9rem;
+    color: #555;
+    min-width: 60px;
+    text-align: right;
+    text-transform: capitalize;
 }
 
 .hidden {
