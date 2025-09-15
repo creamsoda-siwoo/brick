@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="index.css?v=1.1">
+  <link rel="stylesheet" href="index.css?v=1.2">
 </head>
 <body>
   <div id="root">
@@ -18,7 +18,7 @@
 
       <div id="score-board">
           <p>점수: <span id="current-score">0</span></p>
-          <p id="high-score-display">최고 점수: <span id="high-score">0</span></p>
+          <p id="high-score-display" class="hidden">최고: <span id="high-score">0</span></p>
       </div>
       <button id="pause-button" class="hidden">||</button>
       <div id="player"></div>
@@ -33,12 +33,15 @@
           <button class="difficulty-btn" data-difficulty="hard">어려움</button>
           <button class="difficulty-btn" data-difficulty="impossible">불가능</button>
           <button class="difficulty-btn" data-difficulty="hell">지옥</button>
+          <button class="difficulty-btn" data-difficulty="god">신 (God)</button>
         </div>
       </div>
 
       <div id="game-over-screen" class="overlay hidden">
         <h1>게임 오버</h1>
+        <p id="new-high-score-message" class="hidden">🎉 최고 기록 경신! 🎉</p>
         <p>최종 점수: <span id="final-score">0</span></p>
+        <p>최고 점수: <span id="final-high-score">0</span></p>
         <button id="restart-button">처음으로</button>
       </div>
 
@@ -51,6 +54,6 @@
       </div>
     </div>
   </div>
-  <script src="index.js?v=1.1"></script>
+  <script src="index.js?v=1.2"></script>
 </body>
 </html>

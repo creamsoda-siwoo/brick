@@ -140,6 +140,19 @@ body {
     color: #555;
 }
 
+#new-high-score-message {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #ff4500;
+    margin-bottom: 15px;
+    animation: bounce 0.8s ease-in-out;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
 #mode-selection-buttons,
 #difficulty-selection, 
 #pause-buttons {
@@ -173,6 +186,15 @@ body {
 .overlay button:active {
     transform: translateY(2px);
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.difficulty-btn[data-difficulty="god"] {
+    background: linear-gradient(45deg, #ff8c00, #ff0080);
+    border: 2px solid white;
+}
+
+.difficulty-btn[data-difficulty="god"]:hover {
+    background: linear-gradient(45deg, #ffA500, #ff1493);
 }
 
 #back-to-start-button {

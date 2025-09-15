@@ -12,6 +12,7 @@ window.addEventListener('load', () => {
         const BRICK_WIDTH = 40;
         const BRICK_HEIGHT = 20;
         const WALL_WIDTH = 10;
+        const HIGH_SCORE_KEY = 'brickGameHighScores';
 
         const DIFFICULTY_LEVELS = {
             easy: { initialSpeed: 2.4, spawnInterval: 583, speedIncrease: 0.24, speedInterval: 5000 },
@@ -19,6 +20,7 @@ window.addEventListener('load', () => {
             hard: { initialSpeed: 3.6, spawnInterval: 417, speedIncrease: 0.36, speedInterval: 4000 },
             impossible: { initialSpeed: 5.0, spawnInterval: 250, speedIncrease: 0.50, speedInterval: 3000 },
             hell: { initialSpeed: 6.0, spawnInterval: 200, speedIncrease: 0.60, speedInterval: 2500 },
+            god: { initialSpeed: 7.5, spawnInterval: 150, speedIncrease: 0.80, speedInterval: 2000 },
         };
         
         // --- DOM Elements ---
@@ -30,6 +32,8 @@ window.addEventListener('load', () => {
         const startScreen = document.getElementById('start-screen');
         const gameOverScreen = document.getElementById('game-over-screen');
         const finalScoreEl = document.getElementById('final-score');
+        const finalHighScoreEl = document.getElementById('final-high-score');
+        const newHighScoreMessage = document.getElementById('new-high-score-message');
         const difficultySelection = document.getElementById('difficulty-selection');
         const restartButton = document.getElementById('restart-button');
         const pauseButton = document.getElementById('pause-button');
@@ -40,7 +44,6 @@ window.addEventListener('load', () => {
         // --- Game State ---
         let playerX;
         let score;
-        let highScore;
         let brickSpeed;
         let bricks = [];
         let keys = {};
@@ -52,10 +55,50 @@ window.addEventListener('load', () => {
         let pauseStartTime;
         let currentGameConfig;
         let currentSpawnInterval;
+        let highScores = {};
+        let currentDifficulty;
+        let storageAvailable = false;
+
+        // --- High Score Management ---
+        function isLocalStorageAvailable() {
+            try {
+                const test = '__storage_test__';
+                localStorage.setItem(test, test);
+                localStorage.removeItem(test);
+                return true;
+            } catch(e) {
+                return false;
+            }
+        }
+
+        function loadHighScores() {
+            if (!storageAvailable) return;
+            try {
+                const storedScores = localStorage.getItem(HIGH_SCORE_KEY);
+                highScores = storedScores ? JSON.parse(storedScores) : {};
+            } catch (e) {
+                console.error("Error loading high scores:", e);
+                highScores = {};
+            }
+        }
+
+        function saveHighScore() {
+            if (!storageAvailable) return;
+            try {
+                highScores[currentDifficulty] = score;
+                localStorage.setItem(HIGH_SCORE_KEY, JSON.stringify(highScores));
+            } catch (e) {
+                console.error("Error saving high score:", e);
+            }
+        }
 
         // --- Initialization ---
         function init() {
-            loadHighScore();
+            storageAvailable = isLocalStorageAvailable();
+            if (storageAvailable) {
+                loadHighScores();
+            }
+
             setupControls();
 
             difficultySelection.addEventListener('click', (e) => {
@@ -63,7 +106,7 @@ window.addEventListener('load', () => {
                 if (target?.matches('.difficulty-btn')) {
                     const difficulty = target.dataset.difficulty;
                     if (difficulty && DIFFICULTY_LEVELS[difficulty]) {
-                        startGame(DIFFICULTY_LEVELS[difficulty]);
+                        startGame(DIFFICULTY_LEVELS[difficulty], difficulty);
                     }
                 }
             });
@@ -75,6 +118,7 @@ window.addEventListener('load', () => {
         function showStartScreen() {
             gameOverScreen.classList.add('hidden');
             pauseButton.classList.add('hidden');
+            highScoreDisplay.classList.add('hidden');
             startScreen.classList.remove('hidden');
         }
 
@@ -85,7 +129,6 @@ window.addEventListener('load', () => {
         
         function endGameCleanup() {
             isPaused = false;
-            saveHighScore();
             clearAllTimers();
             bricks.forEach(brick => brick.remove());
             bricks = [];
@@ -101,37 +144,8 @@ window.addEventListener('load', () => {
             speedIncreaseTimer = null;
         }
 
-        function loadHighScore() {
-            try {
-                const storedScore = localStorage.getItem('brickDodgerHighScore');
-                highScore = parseInt(storedScore || '0', 10);
-                highScoreEl.textContent = highScore.toString();
-            } catch (e) {
-                console.warn('Failed to access localStorage. High score feature will be disabled.', e);
-                highScore = 0;
-                if (highScoreDisplay) {
-                    highScoreDisplay.style.display = 'none';
-                }
-            }
-        }
-
-        function saveHighScore() {
-            if (highScoreDisplay && highScoreDisplay.style.display === 'none') {
-                return; // Don't try to save if the feature is disabled
-            }
-
-            if (score > highScore) {
-                highScore = score;
-                highScoreEl.textContent = highScore.toString();
-                try {
-                    localStorage.setItem('brickDodgerHighScore', highScore.toString());
-                } catch (e) {
-                     console.warn('Failed to access localStorage. High score could not be saved.', e);
-                }
-            }
-        }
-
-        function resetGame(initialSpeed) {
+        function resetGame(initialSpeed, difficulty) {
+            currentDifficulty = difficulty;
             const playableWidth = gameContainer.clientWidth - WALL_WIDTH * 2;
             playerX = WALL_WIDTH + (playableWidth - PLAYER_WIDTH) / 2;
             score = 0;
@@ -142,15 +156,23 @@ window.addEventListener('load', () => {
             player.style.left = `${playerX}px`;
             currentScoreEl.textContent = '0';
             
+            if (storageAvailable) {
+                const currentHighScore = highScores[currentDifficulty] || 0;
+                highScoreEl.textContent = currentHighScore;
+                highScoreDisplay.classList.remove('hidden');
+            } else {
+                highScoreDisplay.classList.add('hidden');
+            }
+
             bricks.forEach(brick => brick.remove());
             bricks = [];
 
             clearAllTimers();
         }
 
-        function startGame(config) {
+        function startGame(config, difficulty) {
             currentGameConfig = config;
-            resetGame(currentGameConfig.initialSpeed);
+            resetGame(currentGameConfig.initialSpeed, difficulty);
             currentSpawnInterval = currentGameConfig.spawnInterval;
 
             speedIncreaseTimer = window.setInterval(() => {
@@ -161,6 +183,7 @@ window.addEventListener('load', () => {
             gameOverScreen.classList.add('hidden');
             pauseScreen.classList.add('hidden');
             pauseButton.classList.remove('hidden');
+            newHighScoreMessage.classList.add('hidden');
 
             objectSpawnTimer = window.setInterval(spawnBrick, currentSpawnInterval);
             gameLoopId = requestAnimationFrame(gameLoop);
@@ -251,11 +274,22 @@ window.addEventListener('load', () => {
         }
 
         function endGame() {
-            saveHighScore();
             clearAllTimers();
+
+            const currentHighScore = highScores[currentDifficulty] || 0;
+            if (score > currentHighScore) {
+                saveHighScore();
+                newHighScoreMessage.classList.remove('hidden');
+                finalHighScoreEl.textContent = score.toString();
+            } else {
+                newHighScoreMessage.classList.add('hidden');
+                finalHighScoreEl.textContent = currentHighScore.toString();
+            }
+            
             finalScoreEl.textContent = score.toString();
             gameOverScreen.classList.remove('hidden');
             pauseButton.classList.add('hidden');
+            highScoreDisplay.classList.add('hidden');
         }
 
         function pauseGame() {
