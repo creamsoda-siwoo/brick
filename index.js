@@ -98,6 +98,65 @@ window.addEventListener('load', () => {
         let isFeverActive = false;
         let slowMoTimeoutId = null;
         let feverTimeoutId = null;
+        let isDragging = false;
+
+
+        // --- Player Control Handlers ---
+        const handleDragStart = (e) => {
+            if (!gameLoopId || isPaused) return; 
+            isDragging = true;
+            keys = {};
+        };
+
+        const handleDragMove = (e) => {
+            if (!isDragging || isPaused) return;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const gameRect = gameContainer.getBoundingClientRect();
+            let newPlayerX = clientX - gameRect.left - (PLAYER_WIDTH / 2);
+            const rightBoundary = gameContainer.clientWidth - WALL_WIDTH - PLAYER_WIDTH;
+            if (newPlayerX < WALL_WIDTH) newPlayerX = WALL_WIDTH;
+            if (newPlayerX > rightBoundary) newPlayerX = rightBoundary;
+            playerX = newPlayerX;
+            player.style.left = `${playerX}px`;
+        };
+
+        const handleDragEnd = () => {
+            isDragging = false;
+        };
+        
+        const handleKeyDown = (e) => {
+            if (isDragging) return;
+            keys[e.key] = true;
+        };
+
+        const handleKeyUp = (e) => {
+            keys[e.key] = false;
+        };
+        
+        function addPlayerControls() {
+            window.addEventListener('keydown', handleKeyDown);
+            window.addEventListener('keyup', handleKeyUp);
+            gameContainer.addEventListener('mousedown', handleDragStart);
+            window.addEventListener('mousemove', handleDragMove);
+            window.addEventListener('mouseup', handleDragEnd);
+            gameContainer.addEventListener('touchstart', handleDragStart, { passive: true });
+            window.addEventListener('touchmove', handleDragMove, { passive: true });
+            window.addEventListener('touchend', handleDragEnd);
+        }
+        
+        function removePlayerControls() {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
+            gameContainer.removeEventListener('mousedown', handleDragStart);
+            window.removeEventListener('mousemove', handleDragMove);
+            window.removeEventListener('mouseup', handleDragEnd);
+            gameContainer.removeEventListener('touchstart', handleDragStart);
+            window.removeEventListener('touchmove', handleDragMove);
+            window.removeEventListener('touchend', handleDragEnd);
+            keys = {};
+            isDragging = false;
+        }
+
 
         // --- Local Storage Management ---
         function isLocalStorageAvailable() {
@@ -250,6 +309,7 @@ window.addEventListener('load', () => {
         function endGameCleanup() {
             isPaused = false;
             clearAllTimers();
+            removePlayerControls();
             [...bricks, ...items, ...particles].forEach(obj => obj.element?.remove());
             bricks = [];
             items = [];
@@ -342,6 +402,7 @@ window.addEventListener('load', () => {
         function runGame() {
             preGameStartScreen.classList.add('hidden');
             gameStartTime = Date.now(); // Start timer now for accurate scoring
+            addPlayerControls();
 
             speedIncreaseTimer = window.setInterval(() => {
                 originalBrickSpeed += currentGameConfig.speedIncrease;
@@ -628,12 +689,13 @@ window.addEventListener('load', () => {
             if (!gameLoopId && !isPaused) return; // Can't pause if game isn't running
             isPaused = !isPaused;
             if (isPaused) {
+                removePlayerControls();
                 pauseStartTime = Date.now();
-                // We only cancel the animation frame, timers are implicitly paused by the game loop not running.
                 if (gameLoopId) cancelAnimationFrame(gameLoopId);
                 clearAllTimers();
                 showScreen('pause-screen');
             } else {
+                addPlayerControls();
                 const pauseDuration = Date.now() - pauseStartTime;
                 gameStartTime += pauseDuration;
                 // Restart timers
@@ -653,64 +715,6 @@ window.addEventListener('load', () => {
 
         // --- Controls ---
         function setupControls() {
-            let isDragging = false;
-
-            // Keyboard controls
-            window.addEventListener('keydown', (e) => {
-                if (isDragging) return; // Ignore keys while dragging
-                keys[e.key] = true;
-            });
-            window.addEventListener('keyup', (e) => {
-                keys[e.key] = false;
-            });
-
-            const handleDragStart = (e) => {
-                // Can't drag if game isn't running or is paused
-                if (!gameLoopId || isPaused) return; 
-                isDragging = true;
-                keys = {}; // Clear any existing key presses
-            };
-
-            const handleDragMove = (e) => {
-                if (!isDragging || isPaused) return;
-
-                // Get clientX from either mouse or touch event
-                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                const gameRect = gameContainer.getBoundingClientRect();
-                
-                // Calculate position relative to the game container, centering the player on the cursor/finger
-                let newPlayerX = clientX - gameRect.left - (PLAYER_WIDTH / 2);
-
-                // Clamp player position within walls
-                const rightBoundary = gameContainer.clientWidth - WALL_WIDTH - PLAYER_WIDTH;
-                if (newPlayerX < WALL_WIDTH) {
-                    newPlayerX = WALL_WIDTH;
-                }
-                if (newPlayerX > rightBoundary) {
-                    newPlayerX = rightBoundary;
-                }
-                
-                // Update game state and visual position directly for immediate feedback
-                playerX = newPlayerX;
-                player.style.left = `${playerX}px`;
-            };
-
-            const handleDragEnd = () => {
-                isDragging = false;
-            };
-
-            // Mouse Events
-            gameContainer.addEventListener('mousedown', handleDragStart);
-            window.addEventListener('mousemove', handleDragMove);
-            window.addEventListener('mouseup', handleDragEnd);
-
-            // Touch Events
-            gameContainer.addEventListener('touchstart', (e) => {
-                handleDragStart(e);
-            }, { passive: true });
-            window.addEventListener('touchmove', handleDragMove, { passive: true });
-            window.addEventListener('touchend', handleDragEnd);
-            
             pauseButton.addEventListener('click', togglePause);
             resumeButton.addEventListener('click', togglePause);
         }
