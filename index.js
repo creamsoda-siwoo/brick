@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('load', () => {
 
     // --- Game Configuration ---
     const PLAYER_WIDTH = 50;
