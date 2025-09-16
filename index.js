@@ -28,9 +28,9 @@ window.addEventListener('load', () => {
             easy: { initialSpeed: 2.4, spawnInterval: 583, speedIncrease: 0.24, speedInterval: 5000 },
             normal: { initialSpeed: 3.0, spawnInterval: 500, speedIncrease: 0.30, speedInterval: 4500 },
             hard: { initialSpeed: 3.6, spawnInterval: 417, speedIncrease: 0.36, speedInterval: 4000 },
-            hell: { initialSpeed: 6.0, spawnInterval: 200, speedIncrease: 0.60, speedInterval: 2500 },
             god: { initialSpeed: 7.5, spawnInterval: 150, speedIncrease: 0.80, speedInterval: 2000 },
             transcendence: { initialSpeed: 9.0, spawnInterval: 125, speedIncrease: 1.0, speedInterval: 1800 },
+            void: { initialSpeed: 12.0, spawnInterval: 100, speedIncrease: 1.25, speedInterval: 1500 },
         };
         
         // --- DOM Elements ---
@@ -97,11 +97,11 @@ window.addEventListener('load', () => {
         let skinSettings = { bg: 'sky', brick: 'classic', player: 'classic' };
         let isShieldActive = false;
         let isFeverActive = false;
-        let slowMoTimeoutId = null;
-        let feverTimeoutId = null;
+        let feverEndTime = 0;
+        let slowMoEndTime = 0;
         let isDragging = false;
         let isInvincible = false;
-        let invincibilityTimeoutId = null;
+        let invincibilityEndTime = 0;
 
 
         // --- Player Control Handlers ---
@@ -327,16 +327,10 @@ window.addEventListener('load', () => {
             if (brickSpawnTimer) clearInterval(brickSpawnTimer);
             if (itemSpawnTimer) clearInterval(itemSpawnTimer);
             if (speedIncreaseTimer) clearInterval(speedIncreaseTimer);
-            if (slowMoTimeoutId) clearTimeout(slowMoTimeoutId);
-            if (feverTimeoutId) clearTimeout(feverTimeoutId);
-            if (invincibilityTimeoutId) clearTimeout(invincibilityTimeoutId);
             gameLoopId = null;
             brickSpawnTimer = null;
             itemSpawnTimer = null;
             speedIncreaseTimer = null;
-            slowMoTimeoutId = null;
-            feverTimeoutId = null;
-            invincibilityTimeoutId = null;
         }
 
         function resetItemEffects() {
@@ -345,12 +339,9 @@ window.addEventListener('load', () => {
             isInvincible = false;
             player.classList.remove('shield-active', 'fever-active', 'invincible');
             itemStatusEl.innerHTML = '';
-            if (slowMoTimeoutId) clearTimeout(slowMoTimeoutId);
-            if (feverTimeoutId) clearTimeout(feverTimeoutId);
-            if (invincibilityTimeoutId) clearTimeout(invincibilityTimeoutId);
-            slowMoTimeoutId = null;
-            feverTimeoutId = null;
-            invincibilityTimeoutId = null;
+            slowMoEndTime = 0;
+            feverEndTime = 0;
+            invincibilityEndTime = 0;
         }
 
 
@@ -415,7 +406,7 @@ window.addEventListener('load', () => {
 
             speedIncreaseTimer = window.setInterval(() => {
                 originalBrickSpeed += currentGameConfig.speedIncrease;
-                if (!slowMoTimeoutId) {
+                if (slowMoEndTime <= Date.now()) { // only update if slowmo is not active
                     brickSpeed = originalBrickSpeed;
                 }
             }, currentGameConfig.speedInterval);
@@ -423,6 +414,47 @@ window.addEventListener('load', () => {
             brickSpawnTimer = window.setInterval(spawnBrick, currentSpawnInterval);
             itemSpawnTimer = window.setInterval(trySpawningItem, ITEM_SPAWN_INTERVAL);
             gameLoopId = requestAnimationFrame(gameLoop);
+        }
+        
+        // --- Status Timers Update ---
+        function updateStatusTimers() {
+            const now = Date.now();
+            let statusText = '';
+
+            // Fever Check
+            if (feverEndTime > 0) {
+                if (now < feverEndTime) {
+                    const remaining = Math.ceil((feverEndTime - now) / 1000);
+                    statusText += `🔥 ${remaining}s `;
+                    if (!isFeverActive) isFeverActive = true; 
+                } else {
+                    isFeverActive = false;
+                    player.classList.remove('fever-active');
+                    feverEndTime = 0;
+                }
+            }
+
+            // Slow-mo Check
+            if (slowMoEndTime > 0) {
+                if (now < slowMoEndTime) {
+                    const remaining = Math.ceil((slowMoEndTime - now) / 1000);
+                    statusText += `⏳ ${remaining}s `;
+                } else {
+                    brickSpeed = originalBrickSpeed;
+                    slowMoEndTime = 0;
+                }
+            }
+            
+            // Post-hit Invincibility Check (no UI text, just state management)
+            if (invincibilityEndTime > 0) {
+                 if (now >= invincibilityEndTime) {
+                    isInvincible = false;
+                    player.classList.remove('invincible');
+                    invincibilityEndTime = 0;
+                }
+            }
+
+            itemStatusEl.innerHTML = statusText.trim();
         }
 
         // --- Game Loop ---
@@ -433,6 +465,7 @@ window.addEventListener('load', () => {
             updateObjects();
             updateScore();
             updateParticles();
+            updateStatusTimers();
             
             checkItemCollisions();
 
@@ -564,11 +597,7 @@ window.addEventListener('load', () => {
                             // Activate 2-second invincibility
                             isInvincible = true;
                             player.classList.add('invincible');
-                            invincibilityTimeoutId = setTimeout(() => {
-                                isInvincible = false;
-                                player.classList.remove('invincible');
-                                invincibilityTimeoutId = null;
-                            }, 2000);
+                            invincibilityEndTime = Date.now() + 2000;
                         }
                     }
                 }
@@ -594,28 +623,15 @@ window.addEventListener('load', () => {
                 isShieldActive = true;
                 player.classList.add('shield-active');
             } else if (type === 'slow-mo') {
-                if (slowMoTimeoutId) clearTimeout(slowMoTimeoutId);
                 brickSpeed = originalBrickSpeed / 2;
-                itemStatusEl.innerHTML = '⏳';
-                slowMoTimeoutId = setTimeout(() => {
-                    brickSpeed = originalBrickSpeed;
-                    itemStatusEl.innerHTML = '';
-                    slowMoTimeoutId = null;
-                }, SLOW_MO_DURATION);
+                slowMoEndTime = Date.now() + SLOW_MO_DURATION;
             } else if (type === 'health') {
                 health++;
                 updateHealthUI();
             } else if (type === 'fever') {
-                if (feverTimeoutId) clearTimeout(feverTimeoutId);
                 isFeverActive = true;
                 player.classList.add('fever-active');
-                itemStatusEl.innerHTML = '🔥';
-                feverTimeoutId = setTimeout(() => {
-                    isFeverActive = false;
-                    player.classList.remove('fever-active');
-                    itemStatusEl.innerHTML = '';
-                    feverTimeoutId = null;
-                }, FEVER_DURATION);
+                feverEndTime = Date.now() + FEVER_DURATION;
             } else if (type === 'clear') {
                 const bricksCleared = bricks.length;
                 bricks.forEach(brick => {
@@ -714,10 +730,16 @@ window.addEventListener('load', () => {
                 addPlayerControls();
                 const pauseDuration = Date.now() - pauseStartTime;
                 gameStartTime += pauseDuration;
+                
+                // Adjust effect end times
+                if (slowMoEndTime > 0) slowMoEndTime += pauseDuration;
+                if (feverEndTime > 0) feverEndTime += pauseDuration;
+                if (invincibilityEndTime > 0) invincibilityEndTime += pauseDuration;
+
                 // Restart timers
                 speedIncreaseTimer = window.setInterval(() => {
                     originalBrickSpeed += currentGameConfig.speedIncrease;
-                    if (!slowMoTimeoutId) {
+                    if (slowMoEndTime <= Date.now()) {
                         brickSpeed = originalBrickSpeed;
                     }
                 }, currentGameConfig.speedInterval);

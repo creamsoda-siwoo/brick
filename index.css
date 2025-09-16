@@ -437,6 +437,16 @@ body {
     background: linear-gradient(45deg, #600060, #D05858);
 }
 
+.difficulty-btn[data-difficulty="void"] {
+    background: linear-gradient(45deg, #0f0c29, #302b63, #24243e);
+    border: 2px solid white;
+    color: #e0e0e0;
+}
+.difficulty-btn[data-difficulty="void"]:hover {
+    background: linear-gradient(45deg, #1c183a, #423c7e, #333352);
+}
+
+
 .back-button {
   margin-top: 20px;
   background-color: #6c757d;
