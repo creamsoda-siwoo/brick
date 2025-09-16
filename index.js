@@ -45,7 +45,6 @@ window.addEventListener('load', () => {
         const difficultyScreen = document.getElementById('difficulty-screen');
         const customizeScreen = document.getElementById('customize-screen');
         const gameOverScreen = document.getElementById('game-over-screen');
-        const preGameStartScreen = document.getElementById('pre-game-start-screen');
         const finalScoreEl = document.getElementById('final-score');
         const finalHighScoreEl = document.getElementById('final-high-score');
         const newHighScoreMessage = document.getElementById('new-high-score-message');
@@ -69,7 +68,6 @@ window.addEventListener('load', () => {
         const bgSkinSelection = document.getElementById('bg-skin-selection');
         const brickSkinSelection = document.getElementById('brick-skin-selection');
         const playerSkinSelection = document.getElementById('player-skin-selection');
-
 
         // --- Game State ---
         let playerX;
@@ -203,17 +201,20 @@ window.addEventListener('load', () => {
         // --- Skin Management ---
         function applySkins() {
             // Background
-            gameContainer.className = ''; // Clear existing bg classes
+            const bgSkinClasses = ['bg-sky', 'bg-night', 'bg-sunset', 'bg-forest', 'bg-cosmos', 'bg-sakura', 'bg-ocean', 'bg-synthwave'];
+            gameContainer.classList.remove(...bgSkinClasses);
             gameContainer.classList.add(`bg-${skinSettings.bg}`);
             document.querySelectorAll('#bg-skin-selection .skin-option').forEach(el => {
                 el.classList.toggle('selected', el.dataset.skin === skinSettings.bg);
             });
-            // Brick
+            // Brick (for previews)
             document.querySelectorAll('#brick-skin-selection .skin-option').forEach(el => {
                 el.classList.toggle('selected', el.dataset.skin === skinSettings.brick);
             });
             // Player
-            player.className = `player-${skinSettings.player}`;
+            const playerSkinClasses = ['player-classic', 'player-racer', 'player-stealth', 'player-gold', 'player-hologram', 'player-wood', 'player-galaxy', 'player-camo'];
+            player.classList.remove(...playerSkinClasses);
+            player.classList.add(`player-${skinSettings.player}`);
             document.querySelectorAll('#player-skin-selection .skin-option').forEach(el => {
                 el.classList.toggle('selected', el.dataset.skin === skinSettings.player);
             });
@@ -278,14 +279,14 @@ window.addEventListener('load', () => {
             brickSkinSelection.addEventListener('click', (e) => handleSkinSelection(e, 'brick'));
             playerSkinSelection.addEventListener('click', (e) => handleSkinSelection(e, 'player'));
 
-            difficultySelection.addEventListener('click', (e) => {
-                const target = e.target;
-                if (target?.matches('.difficulty-btn')) {
-                    const difficulty = target.dataset.difficulty;
+            // Difficulty selection
+            document.querySelectorAll('#difficulty-selection .difficulty-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const difficulty = button.dataset.difficulty;
                     if (difficulty && DIFFICULTY_LEVELS[difficulty]) {
                         prepareGame(DIFFICULTY_LEVELS[difficulty], difficulty);
                     }
-                }
+                });
             });
 
             retryButton.addEventListener('click', () => prepareGame(currentGameConfig, currentDifficulty));
@@ -335,9 +336,14 @@ window.addEventListener('load', () => {
 
         function resetItemEffects() {
             isShieldActive = false;
+            player.classList.remove('shield-active');
+
             isFeverActive = false;
+            player.classList.remove('fever-active');
+
             isInvincible = false;
-            player.classList.remove('shield-active', 'fever-active', 'invincible');
+            player.classList.remove('invincible');
+            
             itemStatusEl.innerHTML = '';
             slowMoEndTime = 0;
             feverEndTime = 0;
@@ -389,20 +395,12 @@ window.addEventListener('load', () => {
             pauseButton.classList.remove('hidden');
             newHighScoreMessage.classList.add('hidden');
 
-            preGameStartScreen.classList.remove('hidden');
-            
-            const startHandler = () => {
-                runGame();
-            };
-
-            preGameStartScreen.addEventListener('click', startHandler, { once: true });
-            preGameStartScreen.addEventListener('touchstart', startHandler, { once: true });
+            addPlayerControls();
+            runGame();
         }
 
         function runGame() {
-            preGameStartScreen.classList.add('hidden');
             gameStartTime = Date.now(); // Start timer now for accurate scoring
-            addPlayerControls();
 
             speedIncreaseTimer = window.setInterval(() => {
                 originalBrickSpeed += currentGameConfig.speedIncrease;
@@ -426,7 +424,10 @@ window.addEventListener('load', () => {
                 if (now < feverEndTime) {
                     const remaining = Math.ceil((feverEndTime - now) / 1000);
                     statusText += `🔥 ${remaining}s `;
-                    if (!isFeverActive) isFeverActive = true; 
+                    if (!isFeverActive) {
+                        isFeverActive = true;
+                        player.classList.add('fever-active');
+                    }
                 } else {
                     isFeverActive = false;
                     player.classList.remove('fever-active');
@@ -521,7 +522,7 @@ window.addEventListener('load', () => {
 
         function spawnItem() {
             const item = document.createElement('div');
-            const itemTypes = ['shield', 'slow-mo', 'health', 'fever', 'clear'];
+            const itemTypes = ['shield', 'slow-mo', 'health', 'fever', 'clear', 'coin'];
             const itemType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
             
             item.className = `item ${itemType}`;
@@ -565,6 +566,7 @@ window.addEventListener('load', () => {
 
         function checkBrickCollisions() {
             const playerRect = player.getBoundingClientRect();
+            const gameRect = gameContainer.getBoundingClientRect(); // Bug Fix: Added for relative coordinates
             let isGameOver = false;
         
             for (let i = bricks.length - 1; i >= 0; i--) {
@@ -573,8 +575,9 @@ window.addEventListener('load', () => {
         
                 if (isColliding(playerRect, brickRect)) {
                     const brickColor = window.getComputedStyle(brick).backgroundColor;
-                    const brickCenterX = brickRect.left + brickRect.width / 2;
-                    const brickCenterY = brickRect.top + brickRect.height / 2;
+                    // Bug Fix: Calculate position relative to game container
+                    const brickCenterX = brickRect.left - gameRect.left + brickRect.width / 2;
+                    const brickCenterY = brickRect.top - gameRect.top + brickRect.height / 2;
         
                     brick.remove();
                     bricks.splice(i, 1);
@@ -626,18 +629,29 @@ window.addEventListener('load', () => {
                 brickSpeed = originalBrickSpeed / 2;
                 slowMoEndTime = Date.now() + SLOW_MO_DURATION;
             } else if (type === 'health') {
-                health++;
-                updateHealthUI();
+                if(health < MAX_HEALTH) { // Do not increase health if it is full
+                    health++;
+                    updateHealthUI();
+                }
             } else if (type === 'fever') {
-                isFeverActive = true;
-                player.classList.add('fever-active');
                 feverEndTime = Date.now() + FEVER_DURATION;
+                // isFeverActive will be set true in updateStatusTimers to sync with UI
+            } else if (type === 'coin') {
+                score += 50;
+                currentScoreEl.textContent = score.toString();
+                const particleX = playerX + (PLAYER_WIDTH / 2);
+                const particleY = player.offsetTop;
+                createParticles(particleX, particleY, 'gold');
             } else if (type === 'clear') {
+                const gameRect = gameContainer.getBoundingClientRect(); // Bug Fix: Added for relative coordinates
                 const bricksCleared = bricks.length;
                 bricks.forEach(brick => {
                     const brickRect = brick.element.getBoundingClientRect();
                     const brickColor = window.getComputedStyle(brick.element).backgroundColor;
-                    createParticles(brickRect.left + brickRect.width / 2, brickRect.top + brickRect.height / 2, brickColor);
+                    // Bug Fix: Calculate position relative to game container
+                    const particleX = brickRect.left - gameRect.left + brickRect.width / 2;
+                    const particleY = brickRect.top - gameRect.top + brickRect.height / 2;
+                    createParticles(particleX, particleY, brickColor);
                     brick.element.remove();
                 });
                 bricks = [];

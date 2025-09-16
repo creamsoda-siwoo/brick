@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="index.css?v=2.2">
+  <link rel="stylesheet" href="index.css?v=2.3">
 </head>
 <body>
   <div id="root">
@@ -37,6 +37,7 @@
             <p>❤️ 생명물약: 체력 1 회복</p>
             <p>🔥 피버: 5초간 무적 & 벽돌 파괴</p>
             <p>💣 폭탄: 화면의 모든 벽돌 제거</p>
+            <p>💰 코인: 점수 +50</p>
         </div>
         <div id="mode-selection-buttons">
           <button id="start-game-btn">게임 시작</button>
@@ -63,28 +64,40 @@
         <div class="customize-section">
           <h2>배경 스킨</h2>
           <div id="bg-skin-selection" class="skin-selection-container">
-            <div class="skin-option" data-skin="sky" style="background: #87CEEB;"></div>
-            <div class="skin-option" data-skin="night" style="background: linear-gradient(to bottom, #000428, #004e92);"></div>
-            <div class="skin-option" data-skin="sunset" style="background: linear-gradient(to bottom, #ff7e5f, #feb47b);"></div>
-            <div class="skin-option" data-skin="forest" style="background: linear-gradient(to bottom, #294832, #577d63);"></div>
+            <div class="skin-option" data-skin="sky" style="background-color: #87CEEB;"></div>
+            <div class="skin-option" data-skin="night" style="background-image: linear-gradient(to bottom, #000428, #004e92);"></div>
+            <div class="skin-option" data-skin="sunset" style="background-image: linear-gradient(to bottom, #ff7e5f, #feb47b);"></div>
+            <div class="skin-option" data-skin="forest" style="background-image: linear-gradient(to bottom, #294832, #577d63);"></div>
+            <div class="skin-option" data-skin="cosmos" style="background-image: linear-gradient(to bottom, #141E30, #243B55);"></div>
+            <div class="skin-option" data-skin="sakura" style="background-image: linear-gradient(to bottom, #fde4e4, #f8c3c3);"></div>
+            <div class="skin-option" data-skin="ocean" style="background-image: linear-gradient(to bottom, #00c6ff, #0072ff);"></div>
+            <div class="skin-option" data-skin="synthwave" style="background-image: linear-gradient(to bottom, #4A00E0, #8E2DE2);"></div>
           </div>
         </div>
         <div class="customize-section">
           <h2>벽돌 스킨</h2>
           <div id="brick-skin-selection" class="skin-selection-container">
-            <div class="skin-option brick-preview brick-classic" data-skin="classic"></div>
-            <div class="skin-option brick-preview brick-ice" data-skin="ice"></div>
-            <div class="skin-option brick-preview brick-gold" data-skin="gold"></div>
-            <div class="skin-option brick-preview brick-stone" data-skin="stone"></div>
+            <div class="skin-option brick-preview brick-classic-preview" data-skin="classic"></div>
+            <div class="skin-option brick-preview brick-ice-preview" data-skin="ice"></div>
+            <div class="skin-option brick-preview brick-gold-preview" data-skin="gold"></div>
+            <div class="skin-option brick-preview brick-stone-preview" data-skin="stone"></div>
+            <div class="skin-option brick-preview brick-emerald-preview" data-skin="emerald"></div>
+            <div class="skin-option brick-preview brick-ruby-preview" data-skin="ruby"></div>
+            <div class="skin-option brick-preview brick-amethyst-preview" data-skin="amethyst"></div>
+            <div class="skin-option brick-preview brick-obsidian-preview" data-skin="obsidian"></div>
           </div>
         </div>
          <div class="customize-section">
           <h2>플레이어 스킨</h2>
           <div id="player-skin-selection" class="skin-selection-container">
-            <div class="skin-option player-preview player-classic" data-skin="classic"></div>
-            <div class="skin-option player-preview player-racer" data-skin="racer"></div>
-            <div class="skin-option player-preview player-stealth" data-skin="stealth"></div>
-            <div class="skin-option player-preview player-gold" data-skin="gold"></div>
+            <div class="skin-option player-preview player-classic-preview" data-skin="classic"></div>
+            <div class="skin-option player-preview player-racer-preview" data-skin="racer"></div>
+            <div class="skin-option player-preview player-stealth-preview" data-skin="stealth"></div>
+            <div class="skin-option player-preview player-gold-preview" data-skin="gold"></div>
+            <div class="skin-option player-preview player-hologram-preview" data-skin="hologram"></div>
+            <div class="skin-option player-preview player-wood-preview" data-skin="wood"></div>
+            <div class="skin-option player-preview player-galaxy-preview" data-skin="galaxy"></div>
+            <div class="skin-option player-preview player-camo-preview" data-skin="camo"></div>
           </div>
         </div>
         <button id="back-to-start-from-customize" class="back-button">뒤로</button>
@@ -117,12 +130,8 @@
         <button id="back-to-start-from-ranking" class="back-button">뒤로</button>
       </div>
 
-      <div id="pre-game-start-screen" class="overlay hidden">
-        <h1>터치하여 게임을 시작하세요</h1>
-      </div>
-
     </div>
   </div>
-  <script src="index.js?v=2.2"></script>
+  <script src="index.js?v=2.3"></script>
 </body>
 </html>

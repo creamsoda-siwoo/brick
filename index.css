@@ -52,7 +52,7 @@ body {
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   user-select: none;
   touch-action: none; /* Prevents default touch actions like scrolling */
-  transition: background-color 0.5s ease;
+  transition: background-color 0.5s ease, background-image 0.5s ease;
 }
 
 #creator-credit {
@@ -67,10 +67,14 @@ body {
 }
 
 /* Background Skins */
-#game-container.bg-sky { background: #87CEEB; }
-#game-container.bg-night { background: linear-gradient(to bottom, #000428, #004e92); }
-#game-container.bg-sunset { background: linear-gradient(to bottom, #ff7e5f, #feb47b); }
-#game-container.bg-forest { background: linear-gradient(to bottom, #294832, #577d63); }
+#game-container.bg-sky { background-color: #87CEEB; background-image: none; }
+#game-container.bg-night { background-image: linear-gradient(to bottom, #000428, #004e92); }
+#game-container.bg-sunset { background-image: linear-gradient(to bottom, #ff7e5f, #feb47b); }
+#game-container.bg-forest { background-image: linear-gradient(to bottom, #294832, #577d63); }
+#game-container.bg-cosmos { background-image: linear-gradient(to bottom, #141E30, #243B55); }
+#game-container.bg-sakura { background-image: linear-gradient(to bottom, #fde4e4, #f8c3c3); }
+#game-container.bg-ocean { background-image: linear-gradient(to bottom, #00c6ff, #0072ff); }
+#game-container.bg-synthwave { background-image: linear-gradient(to bottom, #4A00E0, #8E2DE2); }
 
 
 .wall {
@@ -103,27 +107,58 @@ body {
 }
 
 /* Player Skins */
-#player.player-classic {
+.player-classic {
   background: linear-gradient(180deg, #4da3ff, var(--player-color));
   border: 1px solid #0056b3;
 }
-#player.player-racer {
+.player-racer {
   background: linear-gradient(180deg, #ff416c, #ff4b2b);
   border: 1px solid #c10f0f;
 }
-#player.player-stealth {
+.player-stealth {
   background: linear-gradient(180deg, #555, #222);
   border: 1px solid #000;
 }
-#player.player-gold {
+.player-gold {
   background: linear-gradient(180deg, #fff59d, #ffca28);
   border: 1px solid #ff8f00;
 }
-#player.shield-active {
+.player-hologram {
+  background: linear-gradient(45deg, #00ffff, #ff00ff, #ffff00, #00ffff);
+  background-size: 400% 400%;
+  border: 1px solid #fff;
+  animation: hologram-shift 4s ease infinite;
+}
+@keyframes hologram-shift {
+  0%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+  100%{background-position:0% 50%}
+}
+.player-wood {
+  background: linear-gradient(180deg, #b9936c, #8a6e4b);
+  border: 1px solid #5a452a;
+}
+.player-galaxy {
+  background: linear-gradient(180deg, #434371, #24243e);
+  border: 1px solid #6a5acd;
+  box-shadow: 0 0 5px #fff, inset 0 0 2px #fff;
+}
+.player-camo {
+  background-color: #556B2F;
+  background-image:
+    linear-gradient(45deg, #4B5320 25%, transparent 25%),
+    linear-gradient(-45deg, #4B5320 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #4B5320 75%),
+    linear-gradient(-45deg, transparent 75%, #4B5320 75%);
+  background-size: 20px 20px;
+  border: 1px solid #3B4B21;
+}
+
+.shield-active {
     box-shadow: 0 0 15px 5px rgba(0, 255, 255, 0.8), inset 0 0 5px rgba(255, 255, 255, 0.5);
 }
 
-#player.invincible {
+.invincible {
   animation: invincible-blink 0.2s linear infinite;
 }
 
@@ -133,7 +168,7 @@ body {
   }
 }
 
-#player.fever-active {
+.fever-active {
   animation: rainbow-glow 0.5s linear infinite;
 }
 
@@ -154,30 +189,55 @@ body {
   position: absolute;
   border-radius: 2px;
   z-index: 4;
+  background-color: var(--brick-color); /* Fallback color */
 }
 
 /* Brick Skins */
-.brick.brick-classic {
+.brick-classic {
   background: linear-gradient(180deg, #e08d5b, var(--brick-color));
   border: 1px solid #800000;
   box-shadow: inset 0 -2px 0 rgba(0,0,0,0.2);
 }
 
-.brick.brick-ice {
+.brick-ice {
   background: linear-gradient(180deg, #e1ffff, #b2ebf2);
   border: 1px solid #4dd0e1;
   box-shadow: inset 0 -2px 0 rgba(0,0,0,0.1);
 }
 
-.brick.brick-gold {
+.brick-gold {
   background: linear-gradient(180deg, #fff59d, #ffca28);
   border: 1px solid #ff8f00;
   box-shadow: inset 0 -2px 0 rgba(0,0,0,0.2);
 }
 
-.brick.brick-stone {
+.brick-stone {
   background: linear-gradient(180deg, #bdbdbd, #757575);
   border: 1px solid #424242;
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,0.3);
+}
+
+.brick-emerald {
+  background: linear-gradient(180deg, #a4ffce, #50C878);
+  border: 1px solid #009B77;
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,0.2);
+}
+
+.brick-ruby {
+  background: linear-gradient(180deg, #ff7d9e, #E0115F);
+  border: 1px solid #9B111E;
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,0.2);
+}
+
+.brick-amethyst {
+  background: linear-gradient(180deg, #d3b3ff, #9966CC);
+  border: 1px solid #6A0DAD;
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,0.2);
+}
+
+.brick-obsidian {
+  background: linear-gradient(180deg, #485461, #28313b);
+  border: 1px solid #000;
   box-shadow: inset 0 -2px 0 rgba(0,0,0,0.3);
 }
 
@@ -225,6 +285,14 @@ body {
 }
 .item.fever::before {
   content: '🔥';
+  font-size: 1.2rem;
+}
+
+.item.coin {
+  background: radial-gradient(circle, #ffd700, #f9a825);
+}
+.item.coin::before {
+  content: '💰';
   font-size: 1.2rem;
 }
 
@@ -316,15 +384,7 @@ body {
   text-align: center;
   z-index: 20;
   padding: 20px;
-}
-
-#pre-game-start-screen {
-  background-color: rgba(255, 255, 255, 0.7);
-}
-
-#pre-game-start-screen h1 {
-  font-size: 2rem;
-  color: #333;
+  overflow-y: auto;
 }
 
 .overlay h1 {
@@ -525,6 +585,8 @@ body {
   border-radius: 10px;
   cursor: pointer;
   transition: border-color 0.2s ease, transform 0.2s ease;
+  background-size: cover;
+  background-position: center;
 }
 .skin-option:hover {
   transform: scale(1.05);
@@ -544,10 +606,26 @@ body {
     border-radius: 8px;
 }
 
-.player-preview.player-classic { background: linear-gradient(180deg, #4da3ff, var(--player-color)); border: 1px solid #0056b3; }
-.player-preview.player-racer { background: linear-gradient(180deg, #ff416c, #ff4b2b); border: 1px solid #c10f0f; }
-.player-preview.player-stealth { background: linear-gradient(180deg, #555, #222); border: 1px solid #000; }
-.player-preview.player-gold { background: linear-gradient(180deg, #fff59d, #ffca28); border: 1px solid #ff8f00; }
+/* Player Skin Previews */
+.player-classic-preview { background: linear-gradient(180deg, #4da3ff, var(--player-color)); border: 1px solid #0056b3; }
+.player-racer-preview { background: linear-gradient(180deg, #ff416c, #ff4b2b); border: 1px solid #c10f0f; }
+.player-stealth-preview { background: linear-gradient(180deg, #555, #222); border: 1px solid #000; }
+.player-gold-preview { background: linear-gradient(180deg, #fff59d, #ffca28); border: 1px solid #ff8f00; }
+.player-hologram-preview { background: linear-gradient(45deg, #00ffff, #ff00ff, #ffff00, #00ffff); background-size: 200% 200%; }
+.player-wood-preview { background: linear-gradient(180deg, #b9936c, #8a6e4b); border: 1px solid #5a452a; }
+.player-galaxy-preview { background: linear-gradient(180deg, #434371, #24243e); border: 1px solid #6a5acd; }
+.player-camo-preview { background-color: #556B2F; background-image: linear-gradient(45deg, #4B5320 25%, transparent 25%), linear-gradient(-45deg, #4B5320 25%, transparent 25%); background-size: 10px 10px;}
+
+
+/* Brick Skin Previews */
+.brick-classic-preview { background: linear-gradient(180deg, #e08d5b, var(--brick-color)); }
+.brick-ice-preview { background: linear-gradient(180deg, #e1ffff, #b2ebf2); }
+.brick-gold-preview { background: linear-gradient(180deg, #fff59d, #ffca28); }
+.brick-stone-preview { background: linear-gradient(180deg, #bdbdbd, #757575); }
+.brick-emerald-preview { background: linear-gradient(180deg, #a4ffce, #50C878); }
+.brick-ruby-preview { background: linear-gradient(180deg, #ff7d9e, #E0115F); }
+.brick-amethyst-preview { background: linear-gradient(180deg, #d3b3ff, #9966CC); }
+.brick-obsidian-preview { background: linear-gradient(180deg, #485461, #28313b); }
 
 /* Ranking Screen */
 #ranking-list {
