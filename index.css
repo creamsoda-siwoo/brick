@@ -395,10 +395,12 @@ body {
   flex: 1;
   white-space: nowrap; /* Prevent text wrapping */
 }
-#select-difficulty-button {
+#select-difficulty-button,
+#retry-pause-button {
   background-color: #008CBA;
 }
-#select-difficulty-button:hover {
+#select-difficulty-button:hover,
+#retry-pause-button:hover {
   background-color: #007399;
 }
 

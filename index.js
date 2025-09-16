@@ -15,8 +15,8 @@ window.addEventListener('load', () => {
         const WALL_WIDTH = 10;
         const ITEM_SIZE = 30;
         const MAX_HEALTH = 3; // Initial health
-        const ITEM_SPAWN_INTERVAL = 2000; // 2 seconds
-        const ITEM_SPAWN_PROBABILITY = 0.05; // 5% chance
+        const ITEM_SPAWN_INTERVAL = 1000; // 1 second
+        const ITEM_SPAWN_PROBABILITY = 0.1; // 10% chance
         const SLOW_MO_DURATION = 5000; // 5 seconds
         const FEVER_DURATION = 5000; // 5 seconds
         const HIGH_SCORE_KEY = 'brickGameHighScores';
@@ -57,6 +57,7 @@ window.addEventListener('load', () => {
         const pauseScreen = document.getElementById('pause-screen');
         const resumeButton = document.getElementById('resume-button');
         const backToStartButton = document.getElementById('back-to-start-button');
+        const retryPauseButton = document.getElementById('retry-pause-button');
         const startGameBtn = document.getElementById('start-game-btn');
         const customizeBtn = document.getElementById('customize-btn');
         const viewRankingsBtn = document.getElementById('view-rankings-btn');
@@ -288,6 +289,7 @@ window.addEventListener('load', () => {
             });
 
             retryButton.addEventListener('click', () => prepareGame(currentGameConfig, currentDifficulty));
+            retryPauseButton.addEventListener('click', () => prepareGame(currentGameConfig, currentDifficulty));
             selectDifficultyButton.addEventListener('click', () => {
                 endGameCleanup();
                 showScreen('difficulty-screen');
@@ -728,9 +730,19 @@ window.addEventListener('load', () => {
         }
 
         // --- Controls ---
+        function handleVisibilityChange() {
+            if (document.visibilityState === 'hidden') {
+                // Pause the game if it is running and not already paused
+                if (gameLoopId && !isPaused) {
+                    togglePause();
+                }
+            }
+        }
+
         function setupControls() {
             pauseButton.addEventListener('click', togglePause);
             resumeButton.addEventListener('click', togglePause);
+            document.addEventListener('visibilitychange', handleVisibilityChange);
         }
 
         init();
