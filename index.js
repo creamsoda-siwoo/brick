@@ -14,7 +14,7 @@ window.addEventListener('load', () => {
         const BRICK_HEIGHT = 20;
         const WALL_WIDTH = 10;
         const ITEM_SIZE = 30;
-        const MAX_HEALTH = 3; // Initial health
+        const INITIAL_HEALTH = 3; 
         const ITEM_SPAWN_INTERVAL = 1000; // 1 second
         const ITEM_SPAWN_PROBABILITY = 0.1; // 10% chance
         const SLOW_MO_DURATION = 5000; // 5 seconds
@@ -22,6 +22,7 @@ window.addEventListener('load', () => {
         const HIGH_SCORE_KEY = 'brickGameHighScores';
         const SKIN_SETTINGS_KEY = 'brickGameSkinSettings';
         const LEADERBOARD_KEY = 'brickGameLeaderboard';
+        const UNLOCKED_DIFFICULTIES_KEY = 'brickGameUnlockedDifficulties';
         const LEADERBOARD_MAX_SIZE = 20;
 
         const DIFFICULTY_LEVELS = {
@@ -31,6 +32,21 @@ window.addEventListener('load', () => {
             god: { initialSpeed: 7.5, spawnInterval: 150, speedIncrease: 0.80, speedInterval: 2000 },
             transcendence: { initialSpeed: 9.0, spawnInterval: 125, speedIncrease: 1.0, speedInterval: 1800 },
             void: { initialSpeed: 12.0, spawnInterval: 100, speedIncrease: 1.25, speedInterval: 1500 },
+        };
+
+        const ALL_DIFFICULTIES = ['easy', 'normal', 'hard', 'god', 'transcendence', 'void'];
+        const KOREAN_DIFFICULTY_NAMES = {
+            easy: '쉬움',
+            normal: '보통',
+            hard: '어려움',
+            god: '신',
+            transcendence: '초월',
+            void: '심연'
+        };
+        const UNLOCK_CONDITIONS = {
+            god: { prev: 'hard', score: 500 },
+            transcendence: { prev: 'god', score: 250 },
+            void: { prev: 'transcendence', score: 250 },
         };
         
         // --- DOM Elements ---
@@ -72,6 +88,7 @@ window.addEventListener('load', () => {
         // --- Game State ---
         let playerX;
         let score;
+        let bonusScore;
         let health;
         let brickSpeed;
         let originalBrickSpeed;
@@ -90,6 +107,7 @@ window.addEventListener('load', () => {
         let currentSpawnInterval;
         let highScores = {};
         let leaderboard = [];
+        let unlockedDifficulties = ['easy', 'normal', 'hard'];
         let currentDifficulty;
         let storageAvailable = false;
         let skinSettings = { bg: 'sky', brick: 'classic', player: 'classic' };
@@ -183,6 +201,9 @@ window.addEventListener('load', () => {
                 const storedSkins = localStorage.getItem(SKIN_SETTINGS_KEY);
                 const defaultSkins = { bg: 'sky', brick: 'classic', player: 'classic' };
                 skinSettings = storedSkins ? { ...defaultSkins, ...JSON.parse(storedSkins) } : defaultSkins;
+                
+                const storedUnlocked = localStorage.getItem(UNLOCKED_DIFFICULTIES_KEY);
+                unlockedDifficulties = storedUnlocked ? JSON.parse(storedUnlocked) : ['easy', 'normal', 'hard'];
 
             } catch (e) {
                 console.error("Error loading data from localStorage:", e);
@@ -256,6 +277,28 @@ window.addEventListener('load', () => {
             
             showScreen('ranking-screen');
         }
+        
+        function updateDifficultyButtonsUI() {
+            document.querySelectorAll('#difficulty-selection .difficulty-btn').forEach(button => {
+                const difficulty = button.dataset.difficulty;
+                const buttonText = KOREAN_DIFFICULTY_NAMES[difficulty] || difficulty;
+                
+                if (unlockedDifficulties.includes(difficulty)) {
+                    button.disabled = false;
+                    button.classList.remove('locked');
+                    button.innerHTML = buttonText;
+                    button.title = '';
+                } else {
+                    button.disabled = true;
+                    button.classList.add('locked');
+                    const condition = UNLOCK_CONDITIONS[difficulty];
+                    if (condition) {
+                         button.innerHTML = `${buttonText} 🔒`;
+                         button.title = `${KOREAN_DIFFICULTY_NAMES[condition.prev]}에서 ${condition.score}점 달성 시 해금`;
+                    }
+                }
+            });
+        }
 
         // --- Initialization ---
         function init() {
@@ -266,7 +309,10 @@ window.addEventListener('load', () => {
             setupControls();
 
             // Navigation buttons
-            startGameBtn.addEventListener('click', () => showScreen('difficulty-screen'));
+            startGameBtn.addEventListener('click', () => {
+                updateDifficultyButtonsUI();
+                showScreen('difficulty-screen');
+            });
             customizeBtn.addEventListener('click', () => showScreen('customize-screen'));
             viewRankingsBtn.addEventListener('click', showRankingScreen);
             backToStartFromDifficulty.addEventListener('click', () => showScreen('start-screen'));
@@ -282,6 +328,7 @@ window.addEventListener('load', () => {
             // Difficulty selection
             document.querySelectorAll('#difficulty-selection .difficulty-btn').forEach(button => {
                 button.addEventListener('click', () => {
+                    if (button.disabled) return;
                     const difficulty = button.dataset.difficulty;
                     if (difficulty && DIFFICULTY_LEVELS[difficulty]) {
                         prepareGame(DIFFICULTY_LEVELS[difficulty], difficulty);
@@ -293,6 +340,7 @@ window.addEventListener('load', () => {
             retryPauseButton.addEventListener('click', () => prepareGame(currentGameConfig, currentDifficulty));
             selectDifficultyButton.addEventListener('click', () => {
                 endGameCleanup();
+                updateDifficultyButtonsUI();
                 showScreen('difficulty-screen');
             });
             backToStartGameOverBtn.addEventListener('click', goBackToStart);
@@ -356,7 +404,8 @@ window.addEventListener('load', () => {
             const playableWidth = gameContainer.clientWidth - WALL_WIDTH * 2;
             playerX = WALL_WIDTH + (playableWidth - PLAYER_WIDTH) / 2;
             score = 0;
-            health = MAX_HEALTH;
+            bonusScore = 0;
+            health = INITIAL_HEALTH;
             brickSpeed = initialSpeed;
             originalBrickSpeed = initialSpeed;
             isPaused = false;
@@ -382,10 +431,15 @@ window.addEventListener('load', () => {
         }
         
         function updateHealthUI() {
-            healthBarEl.innerHTML = '❤️'.repeat(health);
+            healthBarEl.innerHTML = `❤️ x ${health}`;
         }
 
         function prepareGame(config, difficulty) {
+            const existingUnlockMsg = document.getElementById('unlock-message');
+            if (existingUnlockMsg) {
+                existingUnlockMsg.remove();
+            }
+
             currentGameConfig = config;
             resetGame(currentGameConfig.initialSpeed, difficulty);
             currentSpawnInterval = currentGameConfig.spawnInterval;
@@ -479,8 +533,8 @@ window.addEventListener('load', () => {
         }
 
         function updateScore() {
-            const currentElapsedTime = Date.now() - gameStartTime;
-            score = Math.floor(currentElapsedTime / 100);
+            const timeScore = Math.floor((Date.now() - gameStartTime) / 100);
+            score = timeScore + bonusScore;
             currentScoreEl.textContent = score.toString();
         }
 
@@ -583,8 +637,7 @@ window.addEventListener('load', () => {
                     bricks.splice(i, 1);
         
                     if (isFeverActive) {
-                        score += 10; // Bonus score
-                        currentScoreEl.textContent = score.toString();
+                        bonusScore += 10; // Bonus score
                         createParticles(brickCenterX, brickCenterY, brickColor);
                     } else if (isShieldActive) {
                         isShieldActive = false;
@@ -629,16 +682,13 @@ window.addEventListener('load', () => {
                 brickSpeed = originalBrickSpeed / 2;
                 slowMoEndTime = Date.now() + SLOW_MO_DURATION;
             } else if (type === 'health') {
-                if(health < MAX_HEALTH) { // Do not increase health if it is full
-                    health++;
-                    updateHealthUI();
-                }
+                health++;
+                updateHealthUI();
             } else if (type === 'fever') {
                 feverEndTime = Date.now() + FEVER_DURATION;
                 // isFeverActive will be set true in updateStatusTimers to sync with UI
             } else if (type === 'coin') {
-                score += 50;
-                currentScoreEl.textContent = score.toString();
+                bonusScore += 50;
                 const particleX = playerX + (PLAYER_WIDTH / 2);
                 const particleY = player.offsetTop;
                 createParticles(particleX, particleY, 'gold');
@@ -655,8 +705,7 @@ window.addEventListener('load', () => {
                     brick.element.remove();
                 });
                 bricks = [];
-                score += bricksCleared * 5; // Bonus score for each cleared brick
-                currentScoreEl.textContent = score.toString();
+                bonusScore += bricksCleared * 5; // Bonus score for each cleared brick
             }
         }
 
@@ -678,6 +727,20 @@ window.addEventListener('load', () => {
             } else {
                 finalHighScoreEl.textContent = currentHighScore;
                 newHighScoreMessage.classList.add('hidden');
+            }
+            
+            // Check for unlocking next difficulty
+            const nextDifficulty = ALL_DIFFICULTIES[ALL_DIFFICULTIES.indexOf(currentDifficulty) + 1];
+            if (nextDifficulty && !unlockedDifficulties.includes(nextDifficulty)) {
+                const condition = UNLOCK_CONDITIONS[nextDifficulty];
+                if (condition && score >= condition.score) {
+                    unlockedDifficulties.push(nextDifficulty);
+                    saveData(UNLOCKED_DIFFICULTIES_KEY, unlockedDifficulties);
+                    const unlockMsg = document.createElement('p');
+                    unlockMsg.id = 'unlock-message';
+                    unlockMsg.textContent = `🎉 '${KOREAN_DIFFICULTY_NAMES[nextDifficulty]}' 난이도 잠금 해제! 🎉`;
+                    newHighScoreMessage.insertAdjacentElement('afterend', unlockMsg);
+                }
             }
 
             // Leaderboard Logic
