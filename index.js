@@ -44,9 +44,11 @@ window.addEventListener('load', () => {
             void: '심연'
         };
         const UNLOCK_CONDITIONS = {
-            god: { prev: 'hard', score: 500 },
-            transcendence: { prev: 'god', score: 250 },
-            void: { prev: 'transcendence', score: 250 },
+            normal: { prev: 'easy', score: 100 },
+            hard: { prev: 'normal', score: 100 },
+            god: { prev: 'hard', score: 100 },
+            transcendence: { prev: 'god', score: 100 },
+            void: { prev: 'transcendence', score: 100 },
         };
         
         // --- DOM Elements ---
@@ -105,9 +107,10 @@ window.addEventListener('load', () => {
         let pauseStartTime;
         let currentGameConfig;
         let currentSpawnInterval;
+        let initialSpawnInterval;
         let highScores = {};
         let leaderboard = [];
-        let unlockedDifficulties = ['easy', 'normal', 'hard'];
+        let unlockedDifficulties = ['easy'];
         let currentDifficulty;
         let storageAvailable = false;
         let skinSettings = { bg: 'sky', brick: 'classic', player: 'classic' };
@@ -118,7 +121,6 @@ window.addEventListener('load', () => {
         let isDragging = false;
         let isInvincible = false;
         let invincibilityEndTime = 0;
-
 
         // --- Player Control Handlers ---
         const handleDragStart = (e) => {
@@ -203,7 +205,7 @@ window.addEventListener('load', () => {
                 skinSettings = storedSkins ? { ...defaultSkins, ...JSON.parse(storedSkins) } : defaultSkins;
                 
                 const storedUnlocked = localStorage.getItem(UNLOCKED_DIFFICULTIES_KEY);
-                unlockedDifficulties = storedUnlocked ? JSON.parse(storedUnlocked) : ['easy', 'normal', 'hard'];
+                unlockedDifficulties = storedUnlocked ? JSON.parse(storedUnlocked) : ['easy'];
 
             } catch (e) {
                 console.error("Error loading data from localStorage:", e);
@@ -279,22 +281,31 @@ window.addEventListener('load', () => {
         }
         
         function updateDifficultyButtonsUI() {
-            document.querySelectorAll('#difficulty-selection .difficulty-btn').forEach(button => {
+            document.querySelectorAll('#difficulty-selection .difficulty-option').forEach(option => {
+                const button = option.querySelector('.difficulty-btn');
+                const conditionEl = option.querySelector('.unlock-condition');
                 const difficulty = button.dataset.difficulty;
                 const buttonText = KOREAN_DIFFICULTY_NAMES[difficulty] || difficulty;
-                
+
                 if (unlockedDifficulties.includes(difficulty)) {
                     button.disabled = false;
                     button.classList.remove('locked');
                     button.innerHTML = buttonText;
-                    button.title = '';
+                    conditionEl.textContent = '';
+                    conditionEl.classList.remove('visible');
                 } else {
                     button.disabled = true;
                     button.classList.add('locked');
+                    button.innerHTML = `${buttonText} 🔒`;
+                    
                     const condition = UNLOCK_CONDITIONS[difficulty];
                     if (condition) {
-                         button.innerHTML = `${buttonText} 🔒`;
-                         button.title = `${KOREAN_DIFFICULTY_NAMES[condition.prev]}에서 ${condition.score}점 달성 시 해금`;
+                        const conditionText = `'${KOREAN_DIFFICULTY_NAMES[condition.prev]}'에서 ${condition.score}점 달성`;
+                        conditionEl.textContent = conditionText;
+                        conditionEl.classList.add('visible');
+                    } else {
+                        conditionEl.textContent = '';
+                        conditionEl.classList.remove('visible');
                     }
                 }
             });
@@ -336,8 +347,12 @@ window.addEventListener('load', () => {
                 });
             });
 
-            retryButton.addEventListener('click', () => prepareGame(currentGameConfig, currentDifficulty));
-            retryPauseButton.addEventListener('click', () => prepareGame(currentGameConfig, currentDifficulty));
+            retryButton.addEventListener('click', () => {
+                prepareGame(currentGameConfig, currentDifficulty);
+            });
+            retryPauseButton.addEventListener('click', () => {
+                prepareGame(currentGameConfig, currentDifficulty);
+            });
             selectDifficultyButton.addEventListener('click', () => {
                 endGameCleanup();
                 updateDifficultyButtonsUI();
@@ -443,7 +458,8 @@ window.addEventListener('load', () => {
             currentGameConfig = config;
             resetGame(currentGameConfig.initialSpeed, difficulty);
             currentSpawnInterval = currentGameConfig.spawnInterval;
-
+            initialSpawnInterval = currentGameConfig.spawnInterval;
+            
             healthBarEl.classList.remove('hidden');
             document.querySelectorAll('.overlay').forEach(s => s.classList.add('hidden'));
             pauseButton.classList.remove('hidden');
@@ -452,16 +468,32 @@ window.addEventListener('load', () => {
             addPlayerControls();
             runGame();
         }
+        
+        function adjustDifficultyOverTime() {
+            originalBrickSpeed += currentGameConfig.speedIncrease;
+            if (slowMoEndTime <= Date.now()) {
+                brickSpeed = originalBrickSpeed;
+            }
+        
+            // Decrease spawn interval to maintain brick density as speed increases.
+            const speedRatio = currentGameConfig.initialSpeed / originalBrickSpeed;
+            currentSpawnInterval = initialSpawnInterval * speedRatio;
+        
+            // Set a minimum spawn interval to avoid excessive spawning
+            const MIN_SPAWN_INTERVAL = 50; // ms
+            if (currentSpawnInterval < MIN_SPAWN_INTERVAL) {
+                currentSpawnInterval = MIN_SPAWN_INTERVAL;
+            }
+        
+            // Reset the brick spawn timer with the new, shorter interval
+            clearInterval(brickSpawnTimer);
+            brickSpawnTimer = window.setInterval(spawnBrick, currentSpawnInterval);
+        }
 
         function runGame() {
             gameStartTime = Date.now(); // Start timer now for accurate scoring
 
-            speedIncreaseTimer = window.setInterval(() => {
-                originalBrickSpeed += currentGameConfig.speedIncrease;
-                if (slowMoEndTime <= Date.now()) { // only update if slowmo is not active
-                    brickSpeed = originalBrickSpeed;
-                }
-            }, currentGameConfig.speedInterval);
+            speedIncreaseTimer = window.setInterval(adjustDifficultyOverTime, currentGameConfig.speedInterval);
 
             brickSpawnTimer = window.setInterval(spawnBrick, currentSpawnInterval);
             itemSpawnTimer = window.setInterval(trySpawningItem, ITEM_SPAWN_INTERVAL);
@@ -814,12 +846,7 @@ window.addEventListener('load', () => {
                 if (invincibilityEndTime > 0) invincibilityEndTime += pauseDuration;
 
                 // Restart timers
-                speedIncreaseTimer = window.setInterval(() => {
-                    originalBrickSpeed += currentGameConfig.speedIncrease;
-                    if (slowMoEndTime <= Date.now()) {
-                        brickSpeed = originalBrickSpeed;
-                    }
-                }, currentGameConfig.speedInterval);
+                speedIncreaseTimer = window.setInterval(adjustDifficultyOverTime, currentGameConfig.speedInterval);
                 brickSpawnTimer = window.setInterval(spawnBrick, currentSpawnInterval);
                 itemSpawnTimer = window.setInterval(trySpawningItem, ITEM_SPAWN_INTERVAL);
 

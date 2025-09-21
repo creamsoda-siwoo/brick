@@ -421,7 +421,6 @@ body {
 }
 
 #mode-selection-buttons,
-#difficulty-selection,
 #pause-buttons,
 #game-over-buttons {
     display: flex;
@@ -430,6 +429,35 @@ body {
     width: 80%;
     max-width: 250px;
 }
+
+#difficulty-selection {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    width: 80%;
+    max-width: 280px;
+}
+
+.difficulty-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 8px;
+}
+
+.unlock-condition {
+    font-size: 0.85rem;
+    color: #4a4a4a;
+    margin-top: 4px;
+    height: 1.2em; /* Reserve space to avoid layout jumps */
+    visibility: hidden;
+}
+
+.unlock-condition.visible {
+    visibility: visible;
+}
+
 
 #start-game-btn {
   padding: 20px 40px;

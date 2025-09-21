@@ -5,10 +5,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>벽돌 피하기</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="index.css?v=2.3">
+  <link rel="stylesheet" href="index.css?v=2.4">
 </head>
 <body>
   <div id="root">
@@ -49,12 +52,30 @@
       <div id="difficulty-screen" class="overlay hidden">
         <h1>난이도 선택</h1>
         <div id="difficulty-selection">
-          <button class="difficulty-btn" data-difficulty="easy">쉬움</button>
-          <button class="difficulty-btn" data-difficulty="normal">보통</button>
-          <button class="difficulty-btn" data-difficulty="hard">어려움</button>
-          <button class="difficulty-btn" data-difficulty="god">신 (God)</button>
-          <button class="difficulty-btn" data-difficulty="transcendence">초월</button>
-          <button class="difficulty-btn" data-difficulty="void">심연</button>
+          <div class="difficulty-option">
+            <button class="difficulty-btn" data-difficulty="easy">쉬움</button>
+            <span class="unlock-condition"></span>
+          </div>
+          <div class="difficulty-option">
+            <button class="difficulty-btn" data-difficulty="normal">보통</button>
+            <span class="unlock-condition"></span>
+          </div>
+          <div class="difficulty-option">
+            <button class="difficulty-btn" data-difficulty="hard">어려움</button>
+            <span class="unlock-condition"></span>
+          </div>
+          <div class="difficulty-option">
+            <button class="difficulty-btn" data-difficulty="god">신 (God)</button>
+            <span class="unlock-condition"></span>
+          </div>
+          <div class="difficulty-option">
+            <button class="difficulty-btn" data-difficulty="transcendence">초월</button>
+            <span class="unlock-condition"></span>
+          </div>
+          <div class="difficulty-option">
+            <button class="difficulty-btn" data-difficulty="void">심연</button>
+            <span class="unlock-condition"></span>
+          </div>
         </div>
         <button id="back-to-start-from-difficulty" class="back-button">뒤로</button>
       </div>
@@ -132,6 +153,6 @@
 
     </div>
   </div>
-  <script src="index.js?v=2.3"></script>
+  <script src="index.js?v=2.4"></script>
 </body>
 </html>

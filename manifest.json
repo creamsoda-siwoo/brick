@@ -1,0 +1,16 @@
+{
+  "name": "벽돌 피하기",
+  "short_name": "벽돌 피하기",
+  "description": "벽돌을 피하는 간단하고 중독성 있는 아케이드 게임입니다.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#87CEEB",
+  "theme_color": "#87CEEB",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
