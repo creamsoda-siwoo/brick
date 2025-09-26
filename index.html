@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -11,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="index.css?v=2.4">
+  <link rel="stylesheet" href="index.css?v=2.7">
 </head>
 <body>
   <div id="root">
@@ -33,20 +34,19 @@
       <!-- Overlays -->
       <div id="start-screen" class="overlay">
         <h1>벽돌 피하기</h1>
-        <div id="item-description">
-            <h4>아이템 설명</h4>
-            <p>🛡️ 보호막: 1회 충돌 방어</p>
-            <p>⏳ 슬로우: 5초간 벽돌 속도 감소</p>
-            <p>❤️ 생명물약: 체력 1 회복</p>
-            <p>🔥 피버: 5초간 무적 & 벽돌 파괴</p>
-            <p>💣 폭탄: 화면의 모든 벽돌 제거</p>
-            <p>💰 코인: 점수 +50</p>
+        <div id="skin-showcase">
+            <p>현재 스킨</p>
+            <div id="showcase-items-container">
+                <div id="showcase-player-skin"></div>
+                <div id="showcase-brick-skin"></div>
+            </div>
         </div>
-        <div id="mode-selection-buttons">
-          <button id="start-game-btn">게임 시작</button>
-          <button id="view-rankings-btn">순위 보기</button>
+        <div id="main-menu-buttons">
+            <button id="start-game-btn">게임 시작</button>
+            <button id="item-description-btn">아이템 설명</button>
+            <button id="view-rankings-btn">순위 보기</button>
+            <button id="customize-btn">꾸미기</button>
         </div>
-        <button id="customize-btn">꾸미기</button>
       </div>
 
       <div id="difficulty-screen" class="overlay hidden">
@@ -54,30 +54,44 @@
         <div id="difficulty-selection">
           <div class="difficulty-option">
             <button class="difficulty-btn" data-difficulty="easy">쉬움</button>
-            <span class="unlock-condition"></span>
           </div>
           <div class="difficulty-option">
             <button class="difficulty-btn" data-difficulty="normal">보통</button>
-            <span class="unlock-condition"></span>
           </div>
           <div class="difficulty-option">
             <button class="difficulty-btn" data-difficulty="hard">어려움</button>
-            <span class="unlock-condition"></span>
           </div>
           <div class="difficulty-option">
             <button class="difficulty-btn" data-difficulty="god">신 (God)</button>
-            <span class="unlock-condition"></span>
           </div>
           <div class="difficulty-option">
             <button class="difficulty-btn" data-difficulty="transcendence">초월</button>
-            <span class="unlock-condition"></span>
           </div>
           <div class="difficulty-option">
             <button class="difficulty-btn" data-difficulty="void">심연</button>
-            <span class="unlock-condition"></span>
+          </div>
+           <div class="difficulty-option">
+            <button class="difficulty-btn" data-difficulty="cataclysm">카타클리즘</button>
           </div>
         </div>
         <button id="back-to-start-from-difficulty" class="back-button">뒤로</button>
+      </div>
+
+      <div id="item-description-screen" class="overlay hidden">
+        <h1>아이템 설명</h1>
+        <div id="item-description-container">
+            <h4>아이템 설명</h4>
+            <p>🛡️ 보호막: 1회 충돌 방어</p>
+            <p>⏳ 슬로우: 5초간 벽돌 속도 감소</p>
+            <p>❤️ 생명물약: 체력 1 회복</p>
+            <p>🔥 피버: 5초간 무적 & 벽돌 파괴</p>
+            <p>💣 폭탄: 화면의 모든 벽돌 제거</p>
+            <p>💰 코인: 점수 +50</p>
+            <p>⭐ 점수 2배: 7초간 획득 점수 2배</p>
+            <p>⏱️ 시간 정지: 3초간 모든 벽돌 정지</p>
+            <p>🧲 자석: 8초간 주변 아이템을 끌어당김</p>
+        </div>
+        <button id="back-to-start-from-item-desc" class="back-button">뒤로</button>
       </div>
 
       <div id="customize-screen" class="overlay hidden">
@@ -121,12 +135,13 @@
             <div class="skin-option player-preview player-camo-preview" data-skin="camo"></div>
           </div>
         </div>
-        <button id="back-to-start-from-customize" class="back-button">뒤로</button>
+        <button id="back-to-main-from-customize" class="back-button">뒤로</button>
       </div>
       
       <div id="game-over-screen" class="overlay hidden">
         <h1>게임 오버</h1>
         <p id="new-high-score-message" class="hidden">🎉 최고 기록 경신! 🎉</p>
+        <p id="easter-egg-message" class="hidden"></p>
         <p>최종 점수: <span id="final-score">0</span></p>
         <p>최고 점수: <span id="final-high-score">0</span></p>
         <div id="game-over-buttons">
@@ -148,11 +163,15 @@
       <div id="ranking-screen" class="overlay hidden">
         <h1>순위</h1>
         <ol id="ranking-list"></ol>
-        <button id="back-to-start-from-ranking" class="back-button">뒤로</button>
+        <button id="back-to-main-from-ranking" class="back-button">뒤로</button>
+      </div>
+      
+      <div id="countdown-overlay" class="overlay hidden">
+        <span id="countdown-text">3</span>
       </div>
 
     </div>
   </div>
-  <script src="index.js?v=2.4"></script>
+  <script src="index.js?v=2.7"></script>
 </body>
 </html>

@@ -16,13 +16,16 @@ window.addEventListener('load', () => {
         const ITEM_SIZE = 30;
         const INITIAL_HEALTH = 3; 
         const ITEM_SPAWN_INTERVAL = 1000; // 1 second
-        const ITEM_SPAWN_PROBABILITY = 0.1; // 10% chance
+        const ITEM_SPAWN_PROBABILITY = 0.15; // 15% chance
         const SLOW_MO_DURATION = 5000; // 5 seconds
         const FEVER_DURATION = 5000; // 5 seconds
+        const SCORE_MULTIPLIER_DURATION = 7000; // 7 seconds
+        const TIME_STOP_DURATION = 3000; // 3 seconds
+        const MAGNET_DURATION = 8000; // 8 seconds
+        const MAGNET_RADIUS = 150; // pixels
         const HIGH_SCORE_KEY = 'brickGameHighScores';
         const SKIN_SETTINGS_KEY = 'brickGameSkinSettings';
         const LEADERBOARD_KEY = 'brickGameLeaderboard';
-        const UNLOCKED_DIFFICULTIES_KEY = 'brickGameUnlockedDifficulties';
         const LEADERBOARD_MAX_SIZE = 20;
 
         const DIFFICULTY_LEVELS = {
@@ -32,24 +35,33 @@ window.addEventListener('load', () => {
             god: { initialSpeed: 7.5, spawnInterval: 150, speedIncrease: 0.80, speedInterval: 2000 },
             transcendence: { initialSpeed: 9.0, spawnInterval: 125, speedIncrease: 1.0, speedInterval: 1800 },
             void: { initialSpeed: 12.0, spawnInterval: 100, speedIncrease: 1.25, speedInterval: 1500 },
+            cataclysm: { initialSpeed: 15.0, spawnInterval: 80, speedIncrease: 1.5, speedInterval: 1200 },
         };
 
-        const ALL_DIFFICULTIES = ['easy', 'normal', 'hard', 'god', 'transcendence', 'void'];
         const KOREAN_DIFFICULTY_NAMES = {
             easy: '쉬움',
             normal: '보통',
             hard: '어려움',
             god: '신',
             transcendence: '초월',
-            void: '심연'
+            void: '심연',
+            cataclysm: '카타클리즘'
         };
-        const UNLOCK_CONDITIONS = {
-            normal: { prev: 'easy', score: 100 },
-            hard: { prev: 'normal', score: 100 },
-            god: { prev: 'hard', score: 100 },
-            transcendence: { prev: 'god', score: 100 },
-            void: { prev: 'transcendence', score: 100 },
-        };
+
+        const WEIGHTED_ITEM_TYPES = [
+            // Common
+            'shield', 'shield', 'shield',
+            'slow-mo', 'slow-mo', 'slow-mo',
+            'coin', 'coin', 'coin',
+            // Uncommon
+            'health', 'health',
+            'clear', 'clear',
+            'score-multiplier', 'score-multiplier',
+            'magnet', 'magnet',
+            // Rare
+            'fever',
+            'time-stop'
+        ];
         
         // --- DOM Elements ---
         const gameContainer = document.getElementById('game-container');
@@ -61,11 +73,13 @@ window.addEventListener('load', () => {
         const itemStatusEl = document.getElementById('item-status');
         const startScreen = document.getElementById('start-screen');
         const difficultyScreen = document.getElementById('difficulty-screen');
+        const itemDescriptionScreen = document.getElementById('item-description-screen');
         const customizeScreen = document.getElementById('customize-screen');
         const gameOverScreen = document.getElementById('game-over-screen');
         const finalScoreEl = document.getElementById('final-score');
         const finalHighScoreEl = document.getElementById('final-high-score');
         const newHighScoreMessage = document.getElementById('new-high-score-message');
+        const easterEggMessage = document.getElementById('easter-egg-message');
         const difficultySelection = document.getElementById('difficulty-selection');
         const retryButton = document.getElementById('retry-button');
         const selectDifficultyButton = document.getElementById('select-difficulty-button');
@@ -76,22 +90,30 @@ window.addEventListener('load', () => {
         const backToStartButton = document.getElementById('back-to-start-button');
         const retryPauseButton = document.getElementById('retry-pause-button');
         const startGameBtn = document.getElementById('start-game-btn');
+        const itemDescriptionBtn = document.getElementById('item-description-btn');
         const customizeBtn = document.getElementById('customize-btn');
         const viewRankingsBtn = document.getElementById('view-rankings-btn');
         const rankingScreen = document.getElementById('ranking-screen');
         const rankingList = document.getElementById('ranking-list');
-        const backToStartFromRanking = document.getElementById('back-to-start-from-ranking');
+        const backToMainFromRanking = document.getElementById('back-to-main-from-ranking');
+        const backToMainFromCustomize = document.getElementById('back-to-main-from-customize');
         const backToStartFromDifficulty = document.getElementById('back-to-start-from-difficulty');
-        const backToStartFromCustomize = document.getElementById('back-to-start-from-customize');
+        const backToStartFromItemDesc = document.getElementById('back-to-start-from-item-desc');
         const bgSkinSelection = document.getElementById('bg-skin-selection');
         const brickSkinSelection = document.getElementById('brick-skin-selection');
         const playerSkinSelection = document.getElementById('player-skin-selection');
+        const countdownOverlay = document.getElementById('countdown-overlay');
+        const countdownText = document.getElementById('countdown-text');
+        const showcasePlayerSkin = document.getElementById('showcase-player-skin');
+        const showcaseBrickSkin = document.getElementById('showcase-brick-skin');
 
         // --- Game State ---
         let playerX;
         let score;
+        let timeScore;
         let bonusScore;
         let health;
+        let shieldCount;
         let brickSpeed;
         let originalBrickSpeed;
         let bricks = [];
@@ -102,7 +124,7 @@ window.addEventListener('load', () => {
         let brickSpawnTimer = null;
         let itemSpawnTimer = null;
         let speedIncreaseTimer = null;
-        let gameStartTime;
+        let lastUpdateTime;
         let isPaused = false;
         let pauseStartTime;
         let currentGameConfig;
@@ -110,17 +132,22 @@ window.addEventListener('load', () => {
         let initialSpawnInterval;
         let highScores = {};
         let leaderboard = [];
-        let unlockedDifficulties = ['easy'];
         let currentDifficulty;
         let storageAvailable = false;
         let skinSettings = { bg: 'sky', brick: 'classic', player: 'classic' };
-        let isShieldActive = false;
         let isFeverActive = false;
         let feverEndTime = 0;
         let slowMoEndTime = 0;
+        let isScoreMultiplierActive = false;
+        let scoreMultiplierEndTime = 0;
+        let isTimeStopped = false;
+        let timeStopEndTime = 0;
+        let isMagnetActive = false;
+        let magnetEndTime = 0;
         let isDragging = false;
         let isInvincible = false;
         let invincibilityEndTime = 0;
+
 
         // --- Player Control Handlers ---
         const handleDragStart = (e) => {
@@ -204,9 +231,6 @@ window.addEventListener('load', () => {
                 const defaultSkins = { bg: 'sky', brick: 'classic', player: 'classic' };
                 skinSettings = storedSkins ? { ...defaultSkins, ...JSON.parse(storedSkins) } : defaultSkins;
                 
-                const storedUnlocked = localStorage.getItem(UNLOCKED_DIFFICULTIES_KEY);
-                unlockedDifficulties = storedUnlocked ? JSON.parse(storedUnlocked) : ['easy'];
-
             } catch (e) {
                 console.error("Error loading data from localStorage:", e);
             }
@@ -260,7 +284,14 @@ window.addEventListener('load', () => {
             document.getElementById(screenId)?.classList.remove('hidden');
         }
 
-        function showRankingScreen() {
+        function navigateTo(screenId) {
+            if (screenId === 'ranking-screen') {
+                 showRankingScreenContent();
+            }
+            showScreen(screenId);
+        }
+
+        function showRankingScreenContent() {
             rankingList.innerHTML = ''; // Clear previous list
         
             if (leaderboard.length === 0) {
@@ -276,39 +307,29 @@ window.addEventListener('load', () => {
                     rankingList.appendChild(li);
                 });
             }
-            
-            showScreen('ranking-screen');
         }
         
-        function updateDifficultyButtonsUI() {
-            document.querySelectorAll('#difficulty-selection .difficulty-option').forEach(option => {
-                const button = option.querySelector('.difficulty-btn');
-                const conditionEl = option.querySelector('.unlock-condition');
-                const difficulty = button.dataset.difficulty;
-                const buttonText = KOREAN_DIFFICULTY_NAMES[difficulty] || difficulty;
+        // --- Countdown Logic ---
+        function startCountdown(onComplete) {
+            removePlayerControls(); // Player can't move during countdown
 
-                if (unlockedDifficulties.includes(difficulty)) {
-                    button.disabled = false;
-                    button.classList.remove('locked');
-                    button.innerHTML = buttonText;
-                    conditionEl.textContent = '';
-                    conditionEl.classList.remove('visible');
+            let count = 3;
+            countdownOverlay.classList.remove('hidden');
+            countdownText.textContent = count;
+
+            const intervalId = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    countdownText.textContent = count;
+                } else if (count === 0) {
+                    countdownText.textContent = '시작!';
                 } else {
-                    button.disabled = true;
-                    button.classList.add('locked');
-                    button.innerHTML = `${buttonText} 🔒`;
-                    
-                    const condition = UNLOCK_CONDITIONS[difficulty];
-                    if (condition) {
-                        const conditionText = `'${KOREAN_DIFFICULTY_NAMES[condition.prev]}'에서 ${condition.score}점 달성`;
-                        conditionEl.textContent = conditionText;
-                        conditionEl.classList.add('visible');
-                    } else {
-                        conditionEl.textContent = '';
-                        conditionEl.classList.remove('visible');
-                    }
+                    clearInterval(intervalId);
+                    countdownOverlay.classList.add('hidden');
+                    addPlayerControls(); // Give controls back
+                    onComplete();
                 }
-            });
+            }, 1000);
         }
 
         // --- Initialization ---
@@ -316,20 +337,21 @@ window.addEventListener('load', () => {
             storageAvailable = isLocalStorageAvailable();
             loadData();
             applySkins();
-            
             setupControls();
 
-            // Navigation buttons
-            startGameBtn.addEventListener('click', () => {
-                updateDifficultyButtonsUI();
-                showScreen('difficulty-screen');
-            });
-            customizeBtn.addEventListener('click', () => showScreen('customize-screen'));
-            viewRankingsBtn.addEventListener('click', showRankingScreen);
-            backToStartFromDifficulty.addEventListener('click', () => showScreen('start-screen'));
-            backToStartFromCustomize.addEventListener('click', () => showScreen('start-screen'));
-            backToStartFromRanking.addEventListener('click', () => showScreen('start-screen'));
+            showMainMenu();
 
+            // Navigation buttons
+            startGameBtn.addEventListener('click', () => navigateTo('difficulty-screen'));
+            itemDescriptionBtn.addEventListener('click', () => navigateTo('item-description-screen'));
+            customizeBtn.addEventListener('click', () => navigateTo('customize-screen'));
+            viewRankingsBtn.addEventListener('click', () => navigateTo('ranking-screen'));
+            
+            // Back buttons
+            backToMainFromCustomize.addEventListener('click', showMainMenu);
+            backToMainFromRanking.addEventListener('click', showMainMenu);
+            backToStartFromDifficulty.addEventListener('click', showMainMenu);
+            backToStartFromItemDesc.addEventListener('click', showMainMenu);
 
             // Skin selection
             bgSkinSelection.addEventListener('click', (e) => handleSkinSelection(e, 'bg'));
@@ -339,7 +361,6 @@ window.addEventListener('load', () => {
             // Difficulty selection
             document.querySelectorAll('#difficulty-selection .difficulty-btn').forEach(button => {
                 button.addEventListener('click', () => {
-                    if (button.disabled) return;
                     const difficulty = button.dataset.difficulty;
                     if (difficulty && DIFFICULTY_LEVELS[difficulty]) {
                         prepareGame(DIFFICULTY_LEVELS[difficulty], difficulty);
@@ -355,23 +376,29 @@ window.addEventListener('load', () => {
             });
             selectDifficultyButton.addEventListener('click', () => {
                 endGameCleanup();
-                updateDifficultyButtonsUI();
                 showScreen('difficulty-screen');
             });
             backToStartGameOverBtn.addEventListener('click', goBackToStart);
             backToStartButton.addEventListener('click', goBackToStart);
         }
 
-        function showStartScreen() {
+        function showMainMenu() {
             pauseButton.classList.add('hidden');
             highScoreDisplay.classList.add('hidden');
             healthBarEl.classList.add('hidden');
+            player.style.display = 'none';
+            removePlayerControls();
+
+            // Update showcase skins to reflect current selection
+            showcasePlayerSkin.className = `skin-option player-preview player-${skinSettings.player}-preview`;
+            showcaseBrickSkin.className = `skin-option brick-preview brick-${skinSettings.brick}-preview`;
+            
             showScreen('start-screen');
         }
 
         function goBackToStart() {
             endGameCleanup();
-            showStartScreen();
+            showMainMenu();
         }
         
         function endGameCleanup() {
@@ -384,6 +411,7 @@ window.addEventListener('load', () => {
             particles = [];
             resetItemEffects();
             pauseScreen.classList.add('hidden');
+            player.style.display = 'none';
         }
 
         function clearAllTimers() {
@@ -398,11 +426,18 @@ window.addEventListener('load', () => {
         }
 
         function resetItemEffects() {
-            isShieldActive = false;
+            shieldCount = 0;
             player.classList.remove('shield-active');
 
             isFeverActive = false;
             player.classList.remove('fever-active');
+            
+            isScoreMultiplierActive = false;
+
+            isMagnetActive = false;
+            player.classList.remove('magnet-active');
+            
+            isTimeStopped = false;
 
             isInvincible = false;
             player.classList.remove('invincible');
@@ -410,7 +445,10 @@ window.addEventListener('load', () => {
             itemStatusEl.innerHTML = '';
             slowMoEndTime = 0;
             feverEndTime = 0;
+            scoreMultiplierEndTime = 0;
+            timeStopEndTime = 0;
             invincibilityEndTime = 0;
+            magnetEndTime = 0;
         }
 
 
@@ -419,8 +457,10 @@ window.addEventListener('load', () => {
             const playableWidth = gameContainer.clientWidth - WALL_WIDTH * 2;
             playerX = WALL_WIDTH + (playableWidth - PLAYER_WIDTH) / 2;
             score = 0;
+            timeScore = 0;
             bonusScore = 0;
             health = INITIAL_HEALTH;
+            shieldCount = 0;
             brickSpeed = initialSpeed;
             originalBrickSpeed = initialSpeed;
             isPaused = false;
@@ -446,15 +486,21 @@ window.addEventListener('load', () => {
         }
         
         function updateHealthUI() {
-            healthBarEl.innerHTML = `❤️ x ${health}`;
+            let healthHTML = `❤️ x ${health}`;
+            if (shieldCount > 0) {
+                healthHTML += ` 🛡️ x ${shieldCount}`;
+            }
+            healthBarEl.innerHTML = healthHTML;
+            
+            if (shieldCount > 0) {
+                player.classList.add('shield-active');
+            } else {
+                player.classList.remove('shield-active');
+            }
         }
 
         function prepareGame(config, difficulty) {
-            const existingUnlockMsg = document.getElementById('unlock-message');
-            if (existingUnlockMsg) {
-                existingUnlockMsg.remove();
-            }
-
+            player.style.display = 'block';
             currentGameConfig = config;
             resetGame(currentGameConfig.initialSpeed, difficulty);
             currentSpawnInterval = currentGameConfig.spawnInterval;
@@ -464,14 +510,14 @@ window.addEventListener('load', () => {
             document.querySelectorAll('.overlay').forEach(s => s.classList.add('hidden'));
             pauseButton.classList.remove('hidden');
             newHighScoreMessage.classList.add('hidden');
+            easterEggMessage.classList.add('hidden');
 
-            addPlayerControls();
-            runGame();
+            startCountdown(runGame);
         }
         
         function adjustDifficultyOverTime() {
             originalBrickSpeed += currentGameConfig.speedIncrease;
-            if (slowMoEndTime <= Date.now()) {
+            if (slowMoEndTime <= Date.now() && !isTimeStopped) {
                 brickSpeed = originalBrickSpeed;
             }
         
@@ -491,10 +537,9 @@ window.addEventListener('load', () => {
         }
 
         function runGame() {
-            gameStartTime = Date.now(); // Start timer now for accurate scoring
+            lastUpdateTime = Date.now();
 
             speedIncreaseTimer = window.setInterval(adjustDifficultyOverTime, currentGameConfig.speedInterval);
-
             brickSpawnTimer = window.setInterval(spawnBrick, currentSpawnInterval);
             itemSpawnTimer = window.setInterval(trySpawningItem, ITEM_SPAWN_INTERVAL);
             gameLoopId = requestAnimationFrame(gameLoop);
@@ -504,6 +549,23 @@ window.addEventListener('load', () => {
         function updateStatusTimers() {
             const now = Date.now();
             let statusText = '';
+            
+            // Time Stop Check
+            if (timeStopEndTime > 0) {
+                if (now < timeStopEndTime) {
+                    const remaining = Math.ceil((timeStopEndTime - now) / 1000);
+                    statusText += `⏱️ ${remaining}s `;
+                    isTimeStopped = true;
+                } else {
+                    isTimeStopped = false;
+                    timeStopEndTime = 0;
+                    // Restore original speed if slow-mo isn't active
+                    if (slowMoEndTime <= now) {
+                        brickSpeed = originalBrickSpeed;
+                    }
+                }
+            }
+
 
             // Fever Check
             if (feverEndTime > 0) {
@@ -520,6 +582,19 @@ window.addEventListener('load', () => {
                     feverEndTime = 0;
                 }
             }
+            
+            // Score Multiplier Check
+            if (scoreMultiplierEndTime > 0) {
+                if (now < scoreMultiplierEndTime) {
+                    const remaining = Math.ceil((scoreMultiplierEndTime - now) / 1000);
+                    statusText += `⭐ ${remaining}s `;
+                    isScoreMultiplierActive = true;
+                } else {
+                    isScoreMultiplierActive = false;
+                    scoreMultiplierEndTime = 0;
+                }
+            }
+
 
             // Slow-mo Check
             if (slowMoEndTime > 0) {
@@ -527,11 +602,29 @@ window.addEventListener('load', () => {
                     const remaining = Math.ceil((slowMoEndTime - now) / 1000);
                     statusText += `⏳ ${remaining}s `;
                 } else {
-                    brickSpeed = originalBrickSpeed;
+                    if (!isTimeStopped) {
+                      brickSpeed = originalBrickSpeed;
+                    }
                     slowMoEndTime = 0;
                 }
             }
             
+            // Magnet Check
+            if (magnetEndTime > 0) {
+                 if (now < magnetEndTime) {
+                    const remaining = Math.ceil((magnetEndTime - now) / 1000);
+                    statusText += `🧲 ${remaining}s `;
+                    if (!isMagnetActive) {
+                       isMagnetActive = true;
+                       player.classList.add('magnet-active');
+                    }
+                } else {
+                    isMagnetActive = false;
+                    player.classList.remove('magnet-active');
+                    magnetEndTime = 0;
+                }
+            }
+
             // Post-hit Invincibility Check (no UI text, just state management)
             if (invincibilityEndTime > 0) {
                  if (now >= invincibilityEndTime) {
@@ -565,8 +658,20 @@ window.addEventListener('load', () => {
         }
 
         function updateScore() {
-            const timeScore = Math.floor((Date.now() - gameStartTime) / 100);
-            score = timeScore + bonusScore;
+            if (isTimeStopped) {
+                lastUpdateTime = Date.now(); // Prevent score from increasing during time stop
+                return;
+            }
+            const now = Date.now();
+            const timeDelta = now - lastUpdateTime;
+            lastUpdateTime = now;
+        
+            let pointsPerMillisecond = 1 / 100;
+            if (isScoreMultiplierActive) {
+                pointsPerMillisecond *= 2;
+            }
+            timeScore += timeDelta * pointsPerMillisecond;
+            score = Math.floor(timeScore) + bonusScore;
             currentScoreEl.textContent = score.toString();
         }
 
@@ -608,8 +713,7 @@ window.addEventListener('load', () => {
 
         function spawnItem() {
             const item = document.createElement('div');
-            const itemTypes = ['shield', 'slow-mo', 'health', 'fever', 'clear', 'coin'];
-            const itemType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+            const itemType = WEIGHTED_ITEM_TYPES[Math.floor(Math.random() * WEIGHTED_ITEM_TYPES.length)];
             
             item.className = `item ${itemType}`;
             item.dataset.type = itemType;
@@ -625,10 +729,43 @@ window.addEventListener('load', () => {
         }
 
         function updateObjects() {
+            if (isTimeStopped) return;
+        
             const containerHeight = gameContainer.clientHeight;
+            const gameRect = gameContainer.getBoundingClientRect();
+            
             const update = (objectArray, speed) => {
                 for (let i = objectArray.length - 1; i >= 0; i--) {
                     const obj = objectArray[i];
+                    
+                    // Magnet logic for items
+                    if (isMagnetActive && objectArray === items) {
+                        const playerCenterX = playerX + PLAYER_WIDTH / 2;
+                        const playerCenterY = player.offsetTop + player.offsetHeight / 2;
+        
+                        const itemElem = obj.element;
+                        const itemRect = itemElem.getBoundingClientRect();
+                        const itemCenterX = itemRect.left - gameRect.left + itemRect.width / 2;
+                        const itemCenterY = itemRect.top - gameRect.top + itemRect.height / 2;
+        
+                        const dx = playerCenterX - itemCenterX;
+                        const dy = playerCenterY - itemCenterY;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+                        if (distance > 0 && distance < MAGNET_RADIUS) {
+                            const pullSpeed = 4;
+                            // Adjust horizontal position
+                            let currentLeft = parseFloat(itemElem.style.left);
+                            itemElem.style.left = `${currentLeft + (dx / distance) * pullSpeed}px`;
+                            
+                            // Add vertical pull (downwards only)
+                            if (dy > 0) {
+                                obj.y += (dy / distance) * pullSpeed;
+                            }
+                        }
+                    }
+
+                    // Normal movement
                     obj.y += speed;
                     
                     if (obj.y > containerHeight) {
@@ -652,7 +789,7 @@ window.addEventListener('load', () => {
 
         function checkBrickCollisions() {
             const playerRect = player.getBoundingClientRect();
-            const gameRect = gameContainer.getBoundingClientRect(); // Bug Fix: Added for relative coordinates
+            const gameRect = gameContainer.getBoundingClientRect();
             let isGameOver = false;
         
             for (let i = bricks.length - 1; i >= 0; i--) {
@@ -661,7 +798,6 @@ window.addEventListener('load', () => {
         
                 if (isColliding(playerRect, brickRect)) {
                     const brickColor = window.getComputedStyle(brick).backgroundColor;
-                    // Bug Fix: Calculate position relative to game container
                     const brickCenterX = brickRect.left - gameRect.left + brickRect.width / 2;
                     const brickCenterY = brickRect.top - gameRect.top + brickRect.height / 2;
         
@@ -669,11 +805,11 @@ window.addEventListener('load', () => {
                     bricks.splice(i, 1);
         
                     if (isFeverActive) {
-                        bonusScore += 10; // Bonus score
+                        bonusScore += 2; // Fixed 2 points
                         createParticles(brickCenterX, brickCenterY, brickColor);
-                    } else if (isShieldActive) {
-                        isShieldActive = false;
-                        player.classList.remove('shield-active');
+                    } else if (shieldCount > 0) {
+                        shieldCount--;
+                        updateHealthUI();
                         createParticles(brickCenterX, brickCenterY, 'cyan');
                     } else if (!isInvincible) {
                         health--;
@@ -708,8 +844,8 @@ window.addEventListener('load', () => {
 
         function activateItemEffect(type) {
             if (type === 'shield') {
-                isShieldActive = true;
-                player.classList.add('shield-active');
+                shieldCount++;
+                updateHealthUI();
             } else if (type === 'slow-mo') {
                 brickSpeed = originalBrickSpeed / 2;
                 slowMoEndTime = Date.now() + SLOW_MO_DURATION;
@@ -718,26 +854,30 @@ window.addEventListener('load', () => {
                 updateHealthUI();
             } else if (type === 'fever') {
                 feverEndTime = Date.now() + FEVER_DURATION;
-                // isFeverActive will be set true in updateStatusTimers to sync with UI
+            } else if (type === 'score-multiplier') {
+                scoreMultiplierEndTime = Date.now() + SCORE_MULTIPLIER_DURATION;
+            } else if (type === 'time-stop') {
+                timeStopEndTime = Date.now() + TIME_STOP_DURATION;
+            } else if (type === 'magnet') {
+                magnetEndTime = Date.now() + MAGNET_DURATION;
             } else if (type === 'coin') {
-                bonusScore += 50;
+                bonusScore += isScoreMultiplierActive ? 100 : 50;
                 const particleX = playerX + (PLAYER_WIDTH / 2);
                 const particleY = player.offsetTop;
                 createParticles(particleX, particleY, 'gold');
             } else if (type === 'clear') {
-                const gameRect = gameContainer.getBoundingClientRect(); // Bug Fix: Added for relative coordinates
+                const gameRect = gameContainer.getBoundingClientRect();
                 const bricksCleared = bricks.length;
                 bricks.forEach(brick => {
                     const brickRect = brick.element.getBoundingClientRect();
                     const brickColor = window.getComputedStyle(brick.element).backgroundColor;
-                    // Bug Fix: Calculate position relative to game container
                     const particleX = brickRect.left - gameRect.left + brickRect.width / 2;
                     const particleY = brickRect.top - gameRect.top + brickRect.height / 2;
                     createParticles(particleX, particleY, brickColor);
                     brick.element.remove();
                 });
                 bricks = [];
-                bonusScore += bricksCleared * 5; // Bonus score for each cleared brick
+                bonusScore += bricksCleared * 2; // Fixed 2 points per brick
             }
         }
 
@@ -746,37 +886,41 @@ window.addEventListener('load', () => {
             
             finalScoreEl.textContent = score;
             const currentHighScore = highScores[currentDifficulty] || 0;
-            
-            if (score > currentHighScore) {
-                highScores[currentDifficulty] = score;
-                saveData(HIGH_SCORE_KEY, highScores);
-                finalHighScoreEl.textContent = score;
-                newHighScoreMessage.classList.remove('hidden');
+            let isNewHighScore = score > currentHighScore;
+
+            // Hide messages by default
+            newHighScoreMessage.classList.add('hidden');
+            easterEggMessage.classList.add('hidden');
+
+            // Check for Easter Egg first (1008+ score)
+            if (score >= 1008) {
+                easterEggMessage.innerHTML = '🎉 1008점 돌파! 🎉<br><small>제작자를 응원해주셔서 감사합니다!</small>';
+                easterEggMessage.classList.remove('hidden');
                 // Celebrate with confetti
                 for (let i = 0; i < 100; i++) {
                     createParticles(Math.random() * gameContainer.clientWidth, Math.random() * gameContainer.clientHeight, `hsl(${Math.random() * 360}, 100%, 50%)`, true);
                 }
-            } else {
-                finalHighScoreEl.textContent = currentHighScore;
-                newHighScoreMessage.classList.add('hidden');
-            }
-            
-            // Check for unlocking next difficulty
-            const nextDifficulty = ALL_DIFFICULTIES[ALL_DIFFICULTIES.indexOf(currentDifficulty) + 1];
-            if (nextDifficulty && !unlockedDifficulties.includes(nextDifficulty)) {
-                const condition = UNLOCK_CONDITIONS[nextDifficulty];
-                if (condition && score >= condition.score) {
-                    unlockedDifficulties.push(nextDifficulty);
-                    saveData(UNLOCKED_DIFFICULTIES_KEY, unlockedDifficulties);
-                    const unlockMsg = document.createElement('p');
-                    unlockMsg.id = 'unlock-message';
-                    unlockMsg.textContent = `🎉 '${KOREAN_DIFFICULTY_NAMES[nextDifficulty]}' 난이도 잠금 해제! 🎉`;
-                    newHighScoreMessage.insertAdjacentElement('afterend', unlockMsg);
+            } 
+            // If not the easter egg, check for a new high score
+            else if (isNewHighScore) {
+                newHighScoreMessage.classList.remove('hidden');
+                // Celebrate with confetti for the new record
+                for (let i = 0; i < 100; i++) {
+                    createParticles(Math.random() * gameContainer.clientWidth, Math.random() * gameContainer.clientHeight, `hsl(${Math.random() * 360}, 100%, 50%)`, true);
                 }
             }
 
+            // Always handle high score logic (saving and displaying)
+            if (isNewHighScore) {
+                highScores[currentDifficulty] = score;
+                saveData(HIGH_SCORE_KEY, highScores);
+                finalHighScoreEl.textContent = score;
+            } else {
+                finalHighScoreEl.textContent = currentHighScore;
+            }
+            
             // Leaderboard Logic
-            const newEntry = { score, difficulty: currentDifficulty };
+            const newEntry = { score, difficulty: KOREAN_DIFFICULTY_NAMES[currentDifficulty] };
             leaderboard.push(newEntry);
             leaderboard.sort((a, b) => b.score - a.score);
             if (leaderboard.length > LEADERBOARD_MAX_SIZE) {
@@ -825,6 +969,26 @@ window.addEventListener('load', () => {
                 }
             }
         }
+
+        function resumeGame() {
+            const pauseDuration = Date.now() - pauseStartTime;
+            lastUpdateTime += pauseDuration;
+            
+            // Adjust effect end times
+            if (slowMoEndTime > 0) slowMoEndTime += pauseDuration;
+            if (feverEndTime > 0) feverEndTime += pauseDuration;
+            if (scoreMultiplierEndTime > 0) scoreMultiplierEndTime += pauseDuration;
+            if (timeStopEndTime > 0) timeStopEndTime += pauseDuration;
+            if (invincibilityEndTime > 0) invincibilityEndTime += pauseDuration;
+            if (magnetEndTime > 0) magnetEndTime += pauseDuration;
+
+            // Restart timers
+            speedIncreaseTimer = window.setInterval(adjustDifficultyOverTime, currentGameConfig.speedInterval);
+            brickSpawnTimer = window.setInterval(spawnBrick, currentSpawnInterval);
+            itemSpawnTimer = window.setInterval(trySpawningItem, ITEM_SPAWN_INTERVAL);
+            
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
         
         function togglePause() {
             if (!gameLoopId && !isPaused) return; // Can't pause if game isn't running
@@ -836,22 +1000,8 @@ window.addEventListener('load', () => {
                 clearAllTimers();
                 showScreen('pause-screen');
             } else {
-                addPlayerControls();
-                const pauseDuration = Date.now() - pauseStartTime;
-                gameStartTime += pauseDuration;
-                
-                // Adjust effect end times
-                if (slowMoEndTime > 0) slowMoEndTime += pauseDuration;
-                if (feverEndTime > 0) feverEndTime += pauseDuration;
-                if (invincibilityEndTime > 0) invincibilityEndTime += pauseDuration;
-
-                // Restart timers
-                speedIncreaseTimer = window.setInterval(adjustDifficultyOverTime, currentGameConfig.speedInterval);
-                brickSpawnTimer = window.setInterval(spawnBrick, currentSpawnInterval);
-                itemSpawnTimer = window.setInterval(trySpawningItem, ITEM_SPAWN_INTERVAL);
-
                 pauseScreen.classList.add('hidden');
-                gameLoopId = requestAnimationFrame(gameLoop);
+                startCountdown(resumeGame);
             }
         }
 
